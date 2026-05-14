@@ -43,3 +43,20 @@ def test_scan_with_no_gitignore(tmp_tree):
     tree = scan_tree(tmp_tree, respect_gitignore=False)
     names = sorted(c.name for c in tree.children)
     assert "node_modules" in names
+
+
+def test_tree_to_dict(tmp_tree):
+    tree = scan_tree(tmp_tree)
+    d = tree.to_dict()
+    assert d["name"] == tmp_tree.name
+    assert d["kind"] == "dir"
+    assert isinstance(d["children"], list)
+    assert all("name" in c for c in d["children"])
+
+
+def test_tree_to_dict_recursive(tmp_tree):
+    tree = scan_tree(tmp_tree)
+    d = tree.to_dict()
+    ai = next(c for c in d["children"] if c["name"] == "ai-assets")
+    file_names = sorted(c["name"] for c in ai["children"])
+    assert file_names == ["copy.md", "posts.md"]

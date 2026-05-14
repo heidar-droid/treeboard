@@ -17,6 +17,16 @@ class TreeNode:
     mtime: float = 0.0
     children: list["TreeNode"] = field(default_factory=list)
 
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "path": self.path,
+            "kind": self.kind,
+            "size": self.size,
+            "mtime": self.mtime,
+            "children": [c.to_dict() for c in self.children],
+        }
+
 
 def _load_gitignore(root: pathlib.Path) -> Optional[pathspec.PathSpec]:
     gi = root / ".gitignore"
