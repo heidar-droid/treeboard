@@ -1,6 +1,7 @@
 import { layout, subtreeBoundingBox, nodeBoundingBox } from "/static/layout.js";
 import { renderBoard, flagEmptyFolders } from "/static/render.js";
 import { createCamera } from "/static/camera.js";
+import { setupPopovers } from "/static/popover.js";
 
 const board = document.getElementById("board");
 const viewport = document.getElementById("viewport");
@@ -139,3 +140,5 @@ window.addEventListener("DOMContentLoaded", load);
 
 // expose for other modules (popover, palette, context, live)
 window.__tb = { camera, nodeIndex, redraw, get tree() { return tree; } };
+
+setupPopovers(viewport);
