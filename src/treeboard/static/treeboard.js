@@ -191,26 +191,24 @@ function wireInteractions(nodes) {
     g.addEventListener("click", e => {
       e.stopPropagation();
       if (kind === "fold" && collapsed.has(path)) {
+        // collapsed folder → expand in place, no camera move
         collapsed.delete(path);
         redraw();
-        // smart-zoom after re-layout
-        const updated = nodeIndex.get(path);
-        if (updated) {
-          camera.fitTo(subtreeBoundingBox(updated), { padding: 0.2 });
-        }
       } else if (kind === "fold") {
-        // already expanded: smart-zoom to subtree
-        camera.fitTo(subtreeBoundingBox(node), { padding: 0.2 });
+        // expanded folder → collapse in place, no camera move
+        collapsed.add(path);
+        redraw();
+      } else if (kind === "root") {
+        // root is informational; do nothing on click
       } else {
-        // file
-        camera.fitTo(nodeBoundingBox(node), { padding: 0.5 });
+        // file → open popover, no camera move
+        window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } }));
       }
     });
 
     g.addEventListener("dblclick", e => {
       e.stopPropagation();
-      // popover handled in Task 15; for now dispatch a CustomEvent and let
-      // future popover.js subscribe to it.
+      // double-click always opens the popover (folders show meta)
       window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } }));
     });
   });

@@ -5,9 +5,10 @@ import pathlib
 import subprocess
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from treeboard.scan import scan_tree
 from treeboard.meta import folder_meta
@@ -56,6 +57,16 @@ def build_app(
             watcher.stop()
 
     app = FastAPI(title="Treeboard", lifespan=lifespan)
+
+    # Treeboard is a local dev tool — never let the browser cache assets, or
+    # iterating on the UI requires constant manual cache busting.
+    class NoCache(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next):
+            response = await call_next(request)
+            response.headers["Cache-Control"] = "no-store, must-revalidate"
+            return response
+
+    app.add_middleware(NoCache)
     app.state.root = root_p
     app.state.respect_gitignore = respect_gitignore
     app.state.include_dotfiles = include_dotfiles
