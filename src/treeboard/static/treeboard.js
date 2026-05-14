@@ -4,6 +4,7 @@ import { createCamera } from "/static/camera.js";
 import { setupPopovers } from "/static/popover.js";
 import { setupPalette } from "/static/palette.js";
 import { setupContextMenu } from "/static/context.js";
+import { setupLiveUpdates } from "/static/live.js";
 
 const board = document.getElementById("board");
 const viewport = document.getElementById("viewport");
@@ -63,6 +64,24 @@ async function load() {
       { id: "open-editor", label: "Open in default editor",
         action: () => fetch("/api/open", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ path }) }) },
     ];
+  });
+
+  let refreshTimer = null;
+  setupLiveUpdates(evt => {
+    // simple debounce: queue refresh
+    if (refreshTimer) return;
+    refreshTimer = setTimeout(async () => {
+      refreshTimer = null;
+      const r = await fetch("/api/tree");
+      tree = await r.json();
+      redraw();
+      // visual hint on changed node
+      const g = board.querySelector(`g[data-path="${CSS.escape(evt.path)}"]`);
+      if (g) {
+        g.classList.add(evt.type === "deleted" ? "flash-out" : "flash-in");
+        setTimeout(() => g.classList.remove("flash-in", "flash-out"), 900);
+      }
+    }, 250);
   });
 }
 
