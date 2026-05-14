@@ -2,6 +2,7 @@ import { layout, subtreeBoundingBox, nodeBoundingBox } from "/static/layout.js";
 import { renderBoard, flagEmptyFolders } from "/static/render.js";
 import { createCamera } from "/static/camera.js";
 import { setupPopovers } from "/static/popover.js";
+import { setupPalette } from "/static/palette.js";
 
 const board = document.getElementById("board");
 const viewport = document.getElementById("viewport");
@@ -19,6 +20,30 @@ async function load() {
   // default: collapse below depth 2
   markDefaultCollapsed(tree, 0);
   redraw({ initial: true });
+  setupPalette(
+    tree,
+    node => window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } })),
+    node => {
+      // Ensure all ancestor folders are expanded so the target is visible
+      const ancestors = [];
+      function findParent(haystack, targetPath, parent = null) {
+        if (haystack.path === targetPath) return parent;
+        for (const c of (haystack.children || [])) {
+          const r = findParent(c, targetPath, haystack);
+          if (r) return r;
+        }
+        return null;
+      }
+      let p = findParent(tree, node.path);
+      while (p) {
+        if (collapsed.has(p.path)) { collapsed.delete(p.path); ancestors.push(p); }
+        p = findParent(tree, p.path);
+      }
+      if (ancestors.length) redraw();
+      const updated = nodeIndex.get(node.path);
+      if (updated) camera.fitTo(nodeBoundingBox(updated), { padding: 0.5 });
+    },
+  );
 }
 
 function markDefaultCollapsed(node, depth) {
