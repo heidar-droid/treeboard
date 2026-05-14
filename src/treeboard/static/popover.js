@@ -33,21 +33,27 @@ async function openFor(node, viewport) {
   // Evict oldest if 2 already open
   if (popovers.length >= 2) closePopover(popovers[0]);
 
-  const data = node.kind === "dir"
-    ? await fetch(`/api/meta?path=${encodeURIComponent(node.path)}`).then(r => r.json())
-    : await fetch(`/api/file?path=${encodeURIComponent(node.path)}`).then(r => r.json());
+  let data;
+  try {
+    const url = node.kind === "dir"
+      ? `/api/meta?path=${encodeURIComponent(node.path)}`
+      : `/api/file?path=${encodeURIComponent(node.path)}`;
+    const r = await fetch(url);
+    if (!r.ok) {
+      data = { kind: "error", status: r.status, message: await r.text() };
+    } else {
+      data = await r.json();
+    }
+  } catch (err) {
+    data = { kind: "error", message: err.message || String(err) };
+  }
 
   const pop = document.createElement("div");
   pop.className = "popover";
   pop.innerHTML = headerHTML(node, data) + titleHTML(node, data) + `<div class="pop-body">${bodyHTML(node, data)}</div>`;
   viewport.appendChild(pop);
 
-  const leader = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  leader.classList.add("leader");
-  leader.innerHTML = `<path/><circle class="start" r="3"/><circle class="end" r="3"/>`;
-  viewport.appendChild(leader);
-
-  const handle = { pop, leader, node };
+  const handle = { pop, node };
   popovers.push(handle);
 
   positionPopover(handle, viewport);
@@ -63,10 +69,7 @@ function closePopover(h) {
   popovers.splice(idx, 1);
   h.pop.classList.remove("open");
   h.pop.classList.add("closing");
-  setTimeout(() => {
-    h.pop.remove();
-    h.leader.remove();
-  }, 360);
+  setTimeout(() => h.pop.remove(), 360);
 }
 
 function headerHTML(node, data) {
@@ -96,6 +99,10 @@ function titleHTML(node, data) {
 }
 
 function bodyHTML(node, data) {
+  if (data.kind === "error") {
+    return `<div class="md"><p><strong>Couldn't read this file.</strong></p>
+      <p style="color:var(--file-lbl);font-size:11px;">${escapeHTML(data.message || "Unknown error")}</p></div>`;
+  }
   if (node.kind === "dir") return folderMetaHTML(data);
   if (data.kind === "text" && data.ext === ".md") return mdHTML(data.content);
   if (data.kind === "text") return codeHTML(data);
@@ -164,43 +171,28 @@ function humanSize(n) {
   return `${(n / 1048576).toFixed(1)} MB`;
 }
 
-// ============= Positioning + leader =============
+// ============= Positioning =============
+// No leader line — popover is free-floating and draggable.
 function positionPopover(h, viewport) {
   const rect = viewport.getBoundingClientRect();
   const node = h.node;
   const cam = window.__tb.camera.get();
-  const pillBotX = node.__cx * cam.k + cam.x;
+  const pillCx = node.__cx * cam.k + cam.x;
   const pillBotY = (node.__y + node.__h) * cam.k + cam.y;
-  const POP_W = 440, POP_H_MAX = 540, MARGIN = 32;
-  let popX, popY, originX;
-  if (pillBotX + POP_W + MARGIN < rect.width) {
-    popX = pillBotX + 28; originX = "0%";
-  } else {
-    popX = pillBotX - POP_W - 28; originX = "100%";
+  const POP_W = 440, POP_H_MAX = 540, MARGIN = 28;
+  // Prefer to the right of the pill; flip to the left if no room.
+  let popX = pillCx + MARGIN;
+  let originX = "0%";
+  if (popX + POP_W + MARGIN > rect.width) {
+    popX = pillCx - POP_W - MARGIN;
+    originX = "100%";
   }
-  popY = Math.max(20, Math.min(rect.height - POP_H_MAX - 20, pillBotY + 14));
+  popX = Math.max(20, Math.min(rect.width - POP_W - 20, popX));
+  const popY = Math.max(20, Math.min(rect.height - POP_H_MAX - 20, pillBotY + 14));
   h.pop.style.left = popX + "px";
   h.pop.style.top  = popY + "px";
   h.pop.style.setProperty("--origin-x", originX);
   h.pop.style.setProperty("--origin-y", "8%");
-  drawLeader(h, pillBotX, pillBotY, popX, popY, POP_W, originX === "0%");
-}
-
-function drawLeader(h, sx, sy, popX, popY, popW, leftAnchor) {
-  const endX = leftAnchor ? popX + 8 : popX + popW - 8;
-  const endY = popY + 14;
-  const midY = (sy + endY) / 2;
-  const d = `M ${sx} ${sy + 4} C ${sx} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
-  const path = h.leader.querySelector("path");
-  path.setAttribute("d", d);
-  const len = path.getTotalLength();
-  path.style.strokeDasharray = len;
-  path.style.strokeDashoffset = len;
-  requestAnimationFrame(() => { path.style.transition = "stroke-dashoffset .35s ease-out"; path.style.strokeDashoffset = 0; });
-  h.leader.querySelector(".start").setAttribute("cx", sx);
-  h.leader.querySelector(".start").setAttribute("cy", sy + 4);
-  h.leader.querySelector(".end").setAttribute("cx", endX);
-  h.leader.querySelector(".end").setAttribute("cy", endY);
 }
 
 function attachHandlers(h, viewport) {
@@ -249,33 +241,4 @@ function attachHandlers(h, viewport) {
     redrawLeader(h, viewport);
   });
   window.addEventListener("mouseup", () => { if (drag) { h.pop.classList.remove("dragging"); drag = null; } });
-
-  // Reposition leader on camera change
-  window.__tb.camera.onChange(() => redrawLeader(h, viewport));
-}
-
-function redrawLeader(h, viewport) {
-  const cam = window.__tb.camera.get();
-  const sx = h.node.__cx * cam.k + cam.x;
-  const sy = (h.node.__y + h.node.__h) * cam.k + cam.y;
-  const popRect = h.pop.getBoundingClientRect();
-  const vpRect = viewport.getBoundingClientRect();
-  const popX = popRect.left - vpRect.left;
-  const popY = popRect.top - vpRect.top;
-  const popW = popRect.width;
-  const leftAnchor = sx < popX + popW / 2;
-  const endX = leftAnchor ? popX + 8 : popX + popW - 8;
-  const endY = popY + 14;
-  const midY = (sy + endY) / 2;
-  const d = `M ${sx} ${sy + 4} C ${sx} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
-  const path = h.leader.querySelector("path");
-  path.style.transition = "none";
-  path.setAttribute("d", d);
-  const len = path.getTotalLength();
-  path.style.strokeDasharray = len;
-  path.style.strokeDashoffset = 0;
-  h.leader.querySelector(".start").setAttribute("cx", sx);
-  h.leader.querySelector(".start").setAttribute("cy", sy + 4);
-  h.leader.querySelector(".end").setAttribute("cx", endX);
-  h.leader.querySelector(".end").setAttribute("cy", endY);
 }

@@ -81,6 +81,11 @@ export function createCamera(viewport, world) {
   });
 
   viewport.addEventListener("wheel", e => {
+    // Don't hijack scroll inside popovers or the palette — they have their
+    // own overflow:auto and must scroll like normal DOM.
+    if (e.target.closest(".popover") || e.target.closest(".palette") || e.target.closest(".ctx-menu")) {
+      return;
+    }
     e.preventDefault();
     if (e.ctrlKey || e.metaKey) {
       // pinch / cmd-scroll → zoom
