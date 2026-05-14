@@ -118,7 +118,9 @@ async function load() {
 }
 
 function markDefaultCollapsed(node, depth) {
-  if (node.kind === "dir" && depth >= 2 && node.children && node.children.length) {
+  // Show root + immediate children only on first load. Deeper sprawls make the
+  // canvas ultra-wide and force the camera to scale every pill to invisibility.
+  if (node.kind === "dir" && depth >= 1 && node.children && node.children.length) {
     collapsed.add(node.path);
   }
   (node.children || []).forEach(c => markDefaultCollapsed(c, depth + 1));

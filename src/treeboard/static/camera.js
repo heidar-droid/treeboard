@@ -48,12 +48,14 @@ export function createCamera(viewport, world) {
     requestAnimationFrame(step);
   }
 
-  // Fit a canvas-space box {x, y, w, h} into viewport with 20% padding
-  function fitTo(box, { padding = 0.2, duration = 600 } = {}) {
+  // Fit a canvas-space box {x, y, w, h} into viewport with 20% padding.
+  // `minScale` floors the zoom so ultra-wide content stays readable — the
+  // viewport recenters on the box and the user can pan to see the rest.
+  function fitTo(box, { padding = 0.2, duration = 600, minScale = 0.35 } = {}) {
     const vw = viewport.clientWidth, vh = viewport.clientHeight;
     const padX = box.w * padding, padY = box.h * padding;
     const k = Math.min(vw / (box.w + padX * 2), vh / (box.h + padY * 2));
-    const clampedK = Math.max(MIN_K, Math.min(MAX_K, k));
+    const clampedK = Math.max(MIN_K, Math.min(MAX_K, Math.max(k, minScale)));
     const cx = box.x + box.w / 2;
     const cy = box.y + box.h / 2;
     const x = vw / 2 - cx * clampedK;

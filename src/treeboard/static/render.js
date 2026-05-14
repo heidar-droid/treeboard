@@ -14,7 +14,7 @@ export function renderBoard({ nodes, edges }, board, { collapsed, emptyFolders }
   edgesG.innerHTML = "";
   nodesG.innerHTML = "";
 
-  // edges — base then pulse overlay
+  // edges — base everywhere; pulse only on the root's children (cheap to animate)
   let edgeIdx = 0;
   for (const { from, to } of edges) {
     const d = bezier(from, to);
@@ -24,12 +24,14 @@ export function renderBoard({ nodes, edges }, board, { collapsed, emptyFolders }
     base.setAttribute("data-edge", `${from.path}->${to.path}`);
     edgesG.appendChild(base);
 
-    const pulse = document.createElementNS(SVG_NS, "path");
-    pulse.setAttribute("class", "edge-pulse");
-    pulse.setAttribute("d", d);
-    pulse.setAttribute("data-edge", `${from.path}->${to.path}`);
-    pulse.style.animationDelay = `-${(edgeIdx * 0.3) % 3.2}s`;
-    edgesG.appendChild(pulse);
+    if (from.__depth === 0) {
+      const pulse = document.createElementNS(SVG_NS, "path");
+      pulse.setAttribute("class", "edge-pulse pulsing");
+      pulse.setAttribute("d", d);
+      pulse.setAttribute("data-edge", `${from.path}->${to.path}`);
+      pulse.style.animationDelay = `-${(edgeIdx * 0.3) % 3.2}s`;
+      edgesG.appendChild(pulse);
+    }
     edgeIdx++;
   }
 
