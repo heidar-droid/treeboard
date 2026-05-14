@@ -16,11 +16,42 @@ const collapsed = new Set();    // paths of collapsed folders
 let tree = null;
 let nodeIndex = new Map();      // path → node
 
+const VISIBLE_CAP = 5000;
+
+function enforceCap() {
+  // Count currently-visible nodes given current `collapsed` set
+  function count(n) {
+    if (n.kind === "dir" && collapsed.has(n.path)) return 1;
+    let c = 1;
+    for (const ch of (n.children || [])) c += count(ch);
+    return c;
+  }
+  let total = count(tree);
+  if (total <= VISIBLE_CAP) return;
+  // Gather currently-expanded dirs, sort by depth descending then size descending
+  const dirs = [];
+  function gather(n, depth) {
+    if (n.kind !== "dir") return;
+    if (!collapsed.has(n.path) && (n.children || []).length > 0 && depth > 0) {
+      dirs.push({ n, depth, size: (n.children || []).length });
+    }
+    (n.children || []).forEach(c => gather(c, depth + 1));
+  }
+  gather(tree, 0);
+  dirs.sort((a, b) => b.depth - a.depth || b.size - a.size);
+  for (const { n } of dirs) {
+    if (total <= VISIBLE_CAP) break;
+    collapsed.add(n.path);
+    total = count(tree);
+  }
+}
+
 async function load() {
   const r = await fetch("/api/tree");
   tree = await r.json();
   // default: collapse below depth 2
   markDefaultCollapsed(tree, 0);
+  enforceCap();
   redraw({ initial: true });
   setupPalette(
     tree,
@@ -74,6 +105,7 @@ async function load() {
       refreshTimer = null;
       const r = await fetch("/api/tree");
       tree = await r.json();
+      enforceCap();
       redraw();
       // visual hint on changed node
       const g = board.querySelector(`g[data-path="${CSS.escape(evt.path)}"]`);
