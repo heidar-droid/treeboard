@@ -45,7 +45,7 @@ export function layout(tree, { collapsed = new Set() } = {}) {
     node.__x = cx - node.__w / 2;
     node.__y = y;
     const isCollapsed = collapsed.has(node.path);
-    if (node.__kind !== "fold" || isCollapsed || !node.children || node.children.length === 0) {
+    if (node.kind !== "dir" || isCollapsed || !node.children || node.children.length === 0) {
       return;
     }
     const childY = y + node.__h + LEVEL_GAP;
@@ -71,7 +71,7 @@ export function layout(tree, { collapsed = new Set() } = {}) {
     all.push(node);
     if (parent) edges.push({ from: parent, to: node });
     const isCollapsed = collapsed.has(node.path);
-    if (node.__kind === "fold" && !isCollapsed) {
+    if (node.kind === "dir" && !isCollapsed) {
       for (const c of node.children || []) collect(c, node);
     }
   }
