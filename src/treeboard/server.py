@@ -68,6 +68,15 @@ def build_app(
         subprocess.run(["open", "-R", str(p)], check=False)
         return {"ok": True}
 
+    @app.post("/api/open")
+    def open_default(payload: dict):
+        path = payload.get("path", "")
+        p = _safe_path(path)
+        if not p.exists():
+            raise HTTPException(404, "not found")
+        subprocess.run(["open", str(p)], check=False)
+        return {"ok": True}
+
     @app.get("/")
     def index():
         return FileResponse(static_dir / "index.html")

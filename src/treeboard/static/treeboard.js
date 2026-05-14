@@ -3,6 +3,7 @@ import { renderBoard, flagEmptyFolders } from "/static/render.js";
 import { createCamera } from "/static/camera.js";
 import { setupPopovers } from "/static/popover.js";
 import { setupPalette } from "/static/palette.js";
+import { setupContextMenu } from "/static/context.js";
 
 const board = document.getElementById("board");
 const viewport = document.getElementById("viewport");
@@ -44,6 +45,25 @@ async function load() {
       if (updated) camera.fitTo(nodeBoundingBox(updated), { padding: 0.5 });
     },
   );
+  setupContextMenu(viewport, path => {
+    const node = nodeIndex.get(path);
+    return [
+      { id: "reveal", label: "Reveal in Finder",
+        action: () => fetch("/api/reveal", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ path }) }) },
+      { sep: true },
+      { id: "copy-abs", label: "Copy absolute path",
+        action: () => navigator.clipboard.writeText(path) },
+      { id: "copy-rel", label: "Copy relative path",
+        action: () => {
+          const root = tree.path;
+          const rel = path.startsWith(root) ? path.slice(root.length).replace(/^\//, "") : path;
+          navigator.clipboard.writeText(rel);
+        } },
+      { sep: true },
+      { id: "open-editor", label: "Open in default editor",
+        action: () => fetch("/api/open", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ path }) }) },
+    ];
+  });
 }
 
 function markDefaultCollapsed(node, depth) {
