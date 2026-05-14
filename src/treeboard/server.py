@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pathlib
+import subprocess
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -57,6 +58,15 @@ def build_app(
         if not p.is_dir():
             raise HTTPException(404, "directory not found")
         return folder_meta(p)
+
+    @app.post("/api/reveal")
+    def reveal(payload: dict):
+        path = payload.get("path", "")
+        p = _safe_path(path)
+        if not p.exists():
+            raise HTTPException(404, "not found")
+        subprocess.run(["open", "-R", str(p)], check=False)
+        return {"ok": True}
 
     @app.get("/")
     def index():

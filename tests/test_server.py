@@ -47,3 +47,22 @@ def test_root_serves_static_index(tmp_tree):
     r = client.get("/")
     assert r.status_code == 200
     assert "<html" in r.text.lower()
+
+
+def test_reveal_endpoint(tmp_tree, monkeypatch):
+    from fastapi.testclient import TestClient
+    from treeboard.server import build_app
+    calls = []
+    def fake_run(args, **kw):
+        calls.append(args)
+        class R: returncode = 0
+        return R()
+    monkeypatch.setattr("treeboard.server.subprocess.run", fake_run)
+    app = build_app(tmp_tree)
+    client = TestClient(app)
+    p = str(tmp_tree / "ai-assets" / "copy.md")
+    r = client.post("/api/reveal", json={"path": p})
+    assert r.status_code == 200
+    assert len(calls) == 1
+    assert calls[0][0] == "open"
+    assert "-R" in calls[0]
