@@ -3,14 +3,34 @@ from __future__ import annotations
 import os
 import pathlib
 from collections import Counter
+from typing import Optional
+
+import pathspec
+
+from treeboard.scan import _load_gitignore
 
 
-def folder_meta(path: pathlib.Path | str) -> dict:
+def folder_meta(
+    path: pathlib.Path | str,
+    *,
+    respect_gitignore: bool = True,
+    include_dotfiles: bool = False,
+) -> dict:
     """Aggregate folder metadata: file count, total size, file-type breakdown,
-    last-modified file."""
+    last-modified file. Mirrors scan.py's filtering."""
     p = pathlib.Path(path)
     if not p.is_dir():
         raise NotADirectoryError(p)
+
+    spec: Optional[pathspec.PathSpec] = (
+        _load_gitignore(p) if respect_gitignore else None
+    )
+
+    def _ignored(rel: pathlib.Path, is_dir: bool) -> bool:
+        if spec is None:
+            return False
+        cand = str(rel) + ("/" if is_dir else "")
+        return spec.match_file(cand)
 
     file_count = 0
     total_size = 0
@@ -21,14 +41,26 @@ def folder_meta(path: pathlib.Path | str) -> dict:
 
     base_depth = len(p.parts)
     for root, dirs, files in os.walk(p, followlinks=False):
-        dirs[:] = [d for d in dirs if not d.startswith(".")]
-        cur_depth = len(pathlib.Path(root).parts) - base_depth
+        root_path = pathlib.Path(root)
+        # filter dirs in-place so os.walk doesn't recurse into them
+        dirs[:] = [
+            d for d in dirs
+            if not (d.startswith(".") and not include_dotfiles)
+            and not _ignored(root_path.joinpath(d).relative_to(p), True)
+        ]
+        cur_depth = len(root_path.parts) - base_depth
         if cur_depth > deepest:
             deepest = cur_depth
         for f in files:
-            if f.startswith(".") and f != ".env":
+            if f.startswith(".") and f != ".env" and not include_dotfiles:
                 continue
-            fp = pathlib.Path(root) / f
+            fp = root_path / f
+            try:
+                rel = fp.relative_to(p)
+            except ValueError:
+                continue
+            if _ignored(rel, False):
+                continue
             try:
                 st = fp.stat()
             except OSError:

@@ -17,8 +17,6 @@ LANG_BY_EXT = {
     ".tf": "hcl", ".dockerfile": "dockerfile",
 }
 
-TEXT_EXT = set(LANG_BY_EXT) | {".md", ".markdown", ".txt", ".log",
-                                ".gitignore", ".gitattributes"}
 IMAGE_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
 SVG_EXT = {".svg"}
 PDF_EXT = {".pdf"}
@@ -50,7 +48,7 @@ def read_file(path: pathlib.Path | str) -> dict:
         return {**base, "kind": "too_large"}
 
     # .env
-    if p.name == ".env" or ext == ".env":
+    if p.name == ".env":
         try:
             text = p.read_text(encoding="utf-8", errors="replace")
         except OSError:

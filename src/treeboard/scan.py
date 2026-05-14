@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import pathlib
 from dataclasses import dataclass, field
 from typing import Optional
@@ -88,12 +87,10 @@ def scan_tree(
             if counter["n"] >= max_nodes:
                 break
             name = entry.name
-            if not include_dotfiles and name.startswith("."):
-                # Always skip .git regardless of include_dotfiles
-                if name == ".git":
-                    continue
-                if not include_dotfiles:
-                    continue
+            if name == ".git":
+                continue
+            if name.startswith(".") and not include_dotfiles:
+                continue
             try:
                 rel = entry.relative_to(root)
             except ValueError:

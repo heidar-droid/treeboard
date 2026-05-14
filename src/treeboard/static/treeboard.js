@@ -167,7 +167,7 @@ function applyCascadeDelays(nodes, edges) {
   for (const [d, bucket] of byDepth) {
     bucket.sort((a, b) => a.__x - b.__x);
     bucket.forEach((n, i) => {
-      const g = board.querySelector(`g[data-path="${cssEscape(n.path)}"]`);
+      const g = board.querySelector(`g[data-path="${CSS.escape(n.path)}"]`);
       if (g) g.style.animationDelay = `${d * 180 + i * 50}ms`;
     });
   }
@@ -176,8 +176,6 @@ function applyCascadeDelays(nodes, edges) {
     e.style.animationDelay = `${140 + i * 35}ms`;
   });
 }
-
-function cssEscape(s) { return CSS.escape(s); }
 
 function wireInteractions(nodes) {
   board.querySelectorAll(".node").forEach(g => {

@@ -21,11 +21,16 @@ class TreeWatcher:
             _load_gitignore(self.root) if respect_gitignore else None
         )
         self.queue: asyncio.Queue = asyncio.Queue()
-        self.loop = asyncio.get_event_loop()
+        self.loop: asyncio.AbstractEventLoop | None = None
         self.observer = Observer()
         self._handler = _Handler(self)
 
     def start(self):
+        self.loop = asyncio.get_running_loop()
+        # drain stale events from any earlier test/observer instance
+        while not self.queue.empty():
+            try: self.queue.get_nowait()
+            except asyncio.QueueEmpty: break
         self.observer.schedule(self._handler, str(self.root), recursive=True)
         self.observer.start()
 
@@ -49,6 +54,8 @@ class TreeWatcher:
         return True
 
     def emit(self, evt_type: str, src: str, dest: str | None = None, is_dir: bool = False):
+        if self.loop is None:
+            return
         p = pathlib.Path(src)
         if not self._filter(p, is_dir):
             return
