@@ -2,9 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>Treeboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@1&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/treeboard.css">
+  <link rel="stylesheet" href="/static/vendor/tokyo-night-storm.css">
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app">
+    <div class="viewport" id="viewport">
+      <div class="world" id="world">
+        <svg id="board" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="sageGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2.6"/>
+              <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <g id="edges"></g>
+          <g id="nodes"></g>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <script src="/static/vendor/marked.min.js"></script>
+  <script src="/static/vendor/highlight.min.js"></script>
+  <script type="module" src="/static/treeboard.js"></script>
 </body>
 </html>
