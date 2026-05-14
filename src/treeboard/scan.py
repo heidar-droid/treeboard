@@ -23,7 +23,7 @@ def _load_gitignore(root: pathlib.Path) -> Optional[pathspec.PathSpec]:
     if not gi.exists():
         return None
     return pathspec.PathSpec.from_lines(
-        "gitwildmatch", gi.read_text().splitlines()
+        "gitignore", gi.read_text().splitlines()
     )
 
 
