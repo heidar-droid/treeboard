@@ -45,7 +45,10 @@ body::before {
 /* pills */
 .pill { transform-box: fill-box; transform-origin: center;
   transition: transform .2s, stroke .2s; cursor: pointer;
-  vector-effect: non-scaling-stroke; }
+  vector-effect: non-scaling-stroke;
+  /* SVG hit-tests transparent fills as non-hittable by default — force the
+     pill body to register clicks anywhere, not just on the 1px stroke. */
+  pointer-events: all; }
 .pill.root-fill { fill: var(--sage); }
 .pill.fold-stroke { fill: transparent; stroke: var(--line-2); stroke-width: 1; }
 .pill.fold-stroke.collapsed { stroke: #88a995; stroke-width: 1.8; }
