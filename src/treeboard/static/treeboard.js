@@ -1,0 +1,141 @@
+import { layout, subtreeBoundingBox, nodeBoundingBox } from "/static/layout.js";
+import { renderBoard, flagEmptyFolders } from "/static/render.js";
+import { createCamera } from "/static/camera.js";
+
+const board = document.getElementById("board");
+const viewport = document.getElementById("viewport");
+const world = document.getElementById("world");
+const camera = createCamera(viewport, world);
+
+// state
+const collapsed = new Set();    // paths of collapsed folders
+let tree = null;
+let nodeIndex = new Map();      // path → node
+
+async function load() {
+  const r = await fetch("/api/tree");
+  tree = await r.json();
+  // default: collapse below depth 2
+  markDefaultCollapsed(tree, 0);
+  redraw({ initial: true });
+}
+
+function markDefaultCollapsed(node, depth) {
+  if (node.kind === "dir" && depth >= 2 && node.children && node.children.length) {
+    collapsed.add(node.path);
+  }
+  (node.children || []).forEach(c => markDefaultCollapsed(c, depth + 1));
+}
+
+function redraw({ initial = false } = {}) {
+  const { nodes, edges, bounds } = layout(tree, { collapsed });
+  const emptyFolders = flagEmptyFolders(tree);
+  // Rebuild index
+  nodeIndex.clear();
+  nodes.forEach(n => nodeIndex.set(n.path, n));
+  // Size the SVG canvas comfortably
+  const PAD = 200;
+  const w = bounds.maxX - bounds.minX + PAD * 2;
+  const h = bounds.maxY - bounds.minY + PAD * 2;
+  board.setAttribute("viewBox", `${bounds.minX - PAD} ${bounds.minY - PAD} ${w} ${h}`);
+  board.setAttribute("width", w);
+  board.setAttribute("height", h);
+  world.style.width = `${w}px`;
+  world.style.height = `${h}px`;
+  renderBoard({ nodes, edges }, board, { collapsed, emptyFolders });
+
+  wireInteractions(nodes);
+
+  // Initial fit-to-window
+  if (initial) {
+    camera.fitTo({
+      x: bounds.minX, y: bounds.minY,
+      w: bounds.maxX - bounds.minX, h: bounds.maxY - bounds.minY,
+    }, { padding: 0.1, duration: 0 });
+    // play cascade reveal
+    world.classList.add("revealing");
+    applyCascadeDelays(nodes, edges);
+    setTimeout(() => world.classList.remove("revealing"), 1400);
+  }
+}
+
+function applyCascadeDelays(nodes, edges) {
+  // group nodes by depth, sort by x, stagger 50ms within depth, 180ms between depths
+  const byDepth = new Map();
+  for (const n of nodes) {
+    const d = n.__depth;
+    if (!byDepth.has(d)) byDepth.set(d, []);
+    byDepth.get(d).push(n);
+  }
+  for (const [d, bucket] of byDepth) {
+    bucket.sort((a, b) => a.__x - b.__x);
+    bucket.forEach((n, i) => {
+      const g = board.querySelector(`g[data-path="${cssEscape(n.path)}"]`);
+      if (g) g.style.animationDelay = `${d * 180 + i * 50}ms`;
+    });
+  }
+  // edges: stagger sequentially
+  board.querySelectorAll(".edge-base").forEach((e, i) => {
+    e.style.animationDelay = `${140 + i * 35}ms`;
+  });
+}
+
+function cssEscape(s) { return CSS.escape(s); }
+
+function wireInteractions(nodes) {
+  board.querySelectorAll(".node").forEach(g => {
+    const path = g.dataset.path;
+    const kind = g.dataset.kind;
+    const node = nodeIndex.get(path);
+
+    g.addEventListener("mouseenter", () => g.classList.add("hovered"));
+    g.addEventListener("mouseleave", () => g.classList.remove("hovered"));
+
+    g.addEventListener("click", e => {
+      e.stopPropagation();
+      if (kind === "fold" && collapsed.has(path)) {
+        collapsed.delete(path);
+        redraw();
+        // smart-zoom after re-layout
+        const updated = nodeIndex.get(path);
+        if (updated) {
+          camera.fitTo(subtreeBoundingBox(updated), { padding: 0.2 });
+        }
+      } else if (kind === "fold") {
+        // already expanded: smart-zoom to subtree
+        camera.fitTo(subtreeBoundingBox(node), { padding: 0.2 });
+      } else {
+        // file
+        camera.fitTo(nodeBoundingBox(node), { padding: 0.5 });
+      }
+    });
+
+    g.addEventListener("dblclick", e => {
+      e.stopPropagation();
+      // popover handled in Task 15; for now dispatch a CustomEvent and let
+      // future popover.js subscribe to it.
+      window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } }));
+    });
+  });
+}
+
+// keyboard
+window.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    window.dispatchEvent(new CustomEvent("treeboard:escape"));
+    return;
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key === "0") {
+    e.preventDefault();
+    const { bounds } = layout(tree, { collapsed });
+    camera.fitTo({
+      x: bounds.minX, y: bounds.minY,
+      w: bounds.maxX - bounds.minX, h: bounds.maxY - bounds.minY,
+    }, { padding: 0.1 });
+  }
+});
+
+window.addEventListener("DOMContentLoaded", load);
+
+// expose for other modules (popover, palette, context, live)
+window.__tb = { camera, nodeIndex, redraw, get tree() { return tree; } };
