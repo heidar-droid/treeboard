@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 from treeboard.server import build_app
 
@@ -83,3 +84,17 @@ def test_open_endpoint(tmp_tree, monkeypatch):
     r = client.post("/api/open", json={"path": p})
     assert r.status_code == 200
     assert calls == [["open", p]]
+
+
+import asyncio as _asyncio
+
+
+@pytest.mark.asyncio
+async def test_lifespan_starts_watcher_and_queues_event(tmp_tree):
+    from treeboard.server import build_app
+    app = build_app(tmp_tree)
+    async with app.router.lifespan_context(app):
+        new = tmp_tree / "lifespan-fresh.md"
+        new.write_text("ok")
+        evt = await _asyncio.wait_for(app.state.watcher.queue.get(), timeout=2.0)
+        assert evt["path"].endswith("lifespan-fresh.md")

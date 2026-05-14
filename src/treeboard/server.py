@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import asyncio
 import pathlib
 import subprocess
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from treeboard.scan import scan_tree
 from treeboard.meta import folder_meta
 from treeboard.render import read_file
+from treeboard.watcher import TreeWatcher
 
 
 def build_app(
@@ -24,7 +27,35 @@ def build_app(
 
     static_dir = pathlib.Path(__file__).parent / "static"
 
-    app = FastAPI(title="Treeboard")
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        watcher = TreeWatcher(
+            root_p,
+            respect_gitignore=respect_gitignore,
+            include_dotfiles=include_dotfiles,
+        )
+        watcher.start()
+        app.state.watcher = watcher
+        app.state.ws_clients = set()
+        async def broadcast():
+            while True:
+                evt = await watcher.queue.get()
+                dead = []
+                for ws in list(app.state.ws_clients):
+                    try:
+                        await ws.send_json(evt)
+                    except Exception:
+                        dead.append(ws)
+                for d in dead:
+                    app.state.ws_clients.discard(d)
+        task = asyncio.create_task(broadcast())
+        try:
+            yield
+        finally:
+            task.cancel()
+            watcher.stop()
+
+    app = FastAPI(title="Treeboard", lifespan=lifespan)
     app.state.root = root_p
     app.state.respect_gitignore = respect_gitignore
     app.state.include_dotfiles = include_dotfiles
@@ -80,6 +111,16 @@ def build_app(
     @app.get("/")
     def index():
         return FileResponse(static_dir / "index.html")
+
+    @app.websocket("/ws")
+    async def websocket(ws: WebSocket):
+        await ws.accept()
+        app.state.ws_clients.add(ws)
+        try:
+            while True:
+                await ws.receive_text()  # ignore; just keepalive
+        except WebSocketDisconnect:
+            app.state.ws_clients.discard(ws)
 
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
     return app
