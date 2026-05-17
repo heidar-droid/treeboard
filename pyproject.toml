@@ -6,13 +6,36 @@ build-backend = "hatchling.build"
 name = "treeboard"
 version = "0.1.0"
 description = "Cinematic pyramid visualiser for any directory tree."
+readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Heidar Babazade", email = "smbbaba06@gmail.com" },
+]
+keywords = ["directory", "tree", "visualiser", "file-browser", "cli"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Utilities",
+]
 dependencies = [
   "fastapi>=0.110",
   "uvicorn[standard]>=0.27",
   "pathspec>=0.12",
   "watchdog>=4.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/heidar-b/treeboard"
+Repository = "https://github.com/heidar-b/treeboard"
+"Bug Tracker" = "https://github.com/heidar-b/treeboard/issues"
 
 [project.optional-dependencies]
 dev = [
