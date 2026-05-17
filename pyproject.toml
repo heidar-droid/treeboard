@@ -33,9 +33,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/heidar-b/treeboard"
-Repository = "https://github.com/heidar-b/treeboard"
-"Bug Tracker" = "https://github.com/heidar-b/treeboard/issues"
+Homepage = "https://github.com/heidar-droid/treeboard"
+Repository = "https://github.com/heidar-droid/treeboard"
+"Bug Tracker" = "https://github.com/heidar-droid/treeboard/issues"
 
 [project.optional-dependencies]
 dev = [

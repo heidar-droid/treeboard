@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/treeboard)](https://pypi.org/project/treeboard/)
 [![Python](https://img.shields.io/pypi/pyversions/treeboard)](https://pypi.org/project/treeboard/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/heidar-b/treeboard/actions/workflows/ci.yml/badge.svg)](https://github.com/heidar-b/treeboard/actions/workflows/ci.yml)
+[![CI](https://github.com/heidar-droid/treeboard/actions/workflows/ci.yml/badge.svg)](https://github.com/heidar-droid/treeboard/actions/workflows/ci.yml)
 
 treeboard scans a folder and opens a browser canvas where every file and directory is a draggable, zoomable pill — with live file preview, fuzzy search, and real-time updates as you edit.
 
@@ -69,7 +69,7 @@ treeboard watches the directory with `watchdog`. When files change on disk, the 
 ## Development
 
 ```bash
-git clone https://github.com/heidar-b/treeboard
+git clone https://github.com/heidar-droid/treeboard
 cd treeboard
 pip install -e ".[dev]"
 pytest
