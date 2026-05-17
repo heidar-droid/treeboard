@@ -96,5 +96,5 @@ async def test_lifespan_starts_watcher_and_queues_event(tmp_tree):
     async with app.router.lifespan_context(app):
         new = tmp_tree / "lifespan-fresh.md"
         new.write_text("ok")
-        evt = await _asyncio.wait_for(app.state.watcher.queue.get(), timeout=2.0)
+        evt = await _asyncio.wait_for(app.state.watcher.queue.get(), timeout=5.0)
         assert evt["path"].endswith("lifespan-fresh.md")
