@@ -1,6 +1,15 @@
-# Treeboard
+# treeboard
 
-A cinematic pyramid visualiser for any directory on disk.
+**Cinematic pyramid visualiser for any directory on disk.**
+
+[![PyPI](https://img.shields.io/pypi/v/treeboard)](https://pypi.org/project/treeboard/)
+[![Python](https://img.shields.io/pypi/pyversions/treeboard)](https://pypi.org/project/treeboard/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/heidar-b/treeboard/actions/workflows/ci.yml/badge.svg)](https://github.com/heidar-b/treeboard/actions/workflows/ci.yml)
+
+treeboard scans a folder and opens a browser canvas where every file and directory is a draggable, zoomable pill — with live file preview, fuzzy search, and real-time updates as you edit.
+
+---
 
 ## Install
 
@@ -8,36 +17,64 @@ A cinematic pyramid visualiser for any directory on disk.
 pip install treeboard
 ```
 
-## Use
+Requires Python 3.11+. No other dependencies beyond pip.
+
+## Usage
 
 ```bash
-treeboard ~/some/dir
-treeboard . --no-gitignore --include-dotfiles
-treeboard ~/myproject --port 9000 --no-browser
+# Visualise the current directory
+treeboard .
+
+# Visualise any path
+treeboard ~/projects/myapp
+
+# Options
+treeboard ~/myproject --port 9000        # bind to a specific port
+treeboard . --no-gitignore               # disable .gitignore filtering
+treeboard . --include-dotfiles           # show hidden files
+treeboard . --no-browser                 # start server without opening browser
 ```
 
-Opens your browser to a local URL where you can:
+Opens your browser to a local URL. Hit `Ctrl+C` to stop.
 
-- Pan with the trackpad, zoom with Cmd-scroll or pinch
-- Single-click pills to smart-zoom
-- Double-click files to open a tethered popover with rendered content
-- Drag popovers anywhere on the infinite canvas
-- ⌘K to fuzzy-find any file
-- ⌘0 to reset to overview
-- Right-click for context menu (Reveal in Finder, Copy path, Open in editor)
+## Navigation
 
-## Renders
+| Action | Behaviour |
+|---|---|
+| Trackpad pan | Move the canvas |
+| Cmd-scroll / pinch | Zoom in and out |
+| Single-click a pill | Smart-zoom to that file or folder |
+| Double-click a file | Open a tethered popover with rendered content |
+| Drag a popover | Move it anywhere on the canvas |
+| ⌘K | Fuzzy-search any file |
+| ⌘0 | Reset to full overview |
+| Right-click a pill | Context menu: Reveal in Finder · Copy path · Open in editor |
+
+## File rendering
 
 | Type | Behaviour |
 |---|---|
 | `.md` | Formatted prose |
 | Code | Tokyo Night Storm syntax highlighting |
-| `.env` | Masked key/value with REVEAL toggle |
-| Images | Native |
+| `.env` | Masked key/value pairs with REVEAL toggle |
+| Images | Native inline preview |
 | `.pdf` | Inline preview |
-| `.csv` | Table |
-| `.html` | Rendered preview |
+| `.csv` | Sortable table |
+| `.html` | Rendered page preview |
+
+## Live updates
+
+treeboard watches the directory with `watchdog`. When files change on disk, the canvas updates in real time via WebSocket — no refresh needed.
+
+## Development
+
+```bash
+git clone https://github.com/heidar-b/treeboard
+cd treeboard
+pip install -e ".[dev]"
+pytest
+```
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
