@@ -91,9 +91,14 @@ function _syncPinBar() {
     chip.className = "pin-chip pin-bookmark-chip";
     chip.textContent = name;
     chip.title = path;
-    chip.addEventListener("click", () => {
+    chip.addEventListener("click", async () => {
       const node = window.__tb?.nodeIndex?.get(path);
-      if (node) window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } }));
+      if (node) {
+        window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } }));
+      } else {
+        const { showToast } = await import("/static/control-center.js");
+        showToast("File not visible — expand its folder first");
+      }
     });
     chip.classList.add("landed");
     bar.appendChild(chip);
@@ -101,12 +106,16 @@ function _syncPinBar() {
 }
 
 async function _toggleBookmarkPanel() {
+  const { showToast } = await import("/static/control-center.js");
   if (_bookmarks.size === 0) {
-    const { showToast } = await import("/static/control-center.js");
     showToast("No bookmarks yet — click ★ on any pill");
     return;
   }
   const [first] = _bookmarks;
   const node = window.__tb?.nodeIndex?.get(first);
-  if (node) window.__tb.camera.fitTo({ x: node.__x, y: node.__y, w: node.__w, h: node.__h }, { padding: 2 });
+  if (node) {
+    window.__tb.camera.fitTo({ x: node.__x, y: node.__y, w: node.__w, h: node.__h }, { padding: 2 });
+  } else {
+    showToast("Bookmarked file not visible — expand its folder first");
+  }
 }
