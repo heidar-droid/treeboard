@@ -14,13 +14,40 @@ function fuzzyScore(query, name) {
   return score;
 }
 
+const PROMPT_TEMPLATES = [
+  { id: "explain",  label: "Explain this codebase",   prompt: "You are an expert developer. Explain the following code concisely:\n\n{context}" },
+  { id: "refactor", label: "Refactor for clarity",     prompt: "Refactor the following code for readability and maintainability:\n\n{context}" },
+  { id: "tests",    label: "Write tests",              prompt: "Write comprehensive tests for the following code:\n\n{context}" },
+  { id: "bugs",     label: "Find bugs",                prompt: "Review the following code for bugs, edge cases, and security issues:\n\n{context}" },
+  { id: "docs",     label: "Add documentation",        prompt: "Add clear docstrings and inline comments to the following code:\n\n{context}" },
+];
+
 export function setupPalette(tree, openFile, zoomToNode) {
   const wrap = document.createElement("div");
   wrap.className = "palette";
-  wrap.innerHTML = `<input type="text" placeholder="Find a file…" /><div class="results"></div>`;
+  wrap.innerHTML = `
+  <div class="pal-tabs">
+    <button class="pal-tab active" data-tab="files">Files</button>
+    <button class="pal-tab" data-tab="actions">Actions</button>
+  </div>
+  <input type="text" placeholder="Find a file…" />
+  <div class="results"></div>`;
   document.body.appendChild(wrap);
   const input = wrap.querySelector("input");
   const results = wrap.querySelector(".results");
+
+  let activeTab = "files";
+  const tabs = wrap.querySelectorAll(".pal-tab");
+
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      activeTab = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === activeTab));
+      input.placeholder = activeTab === "files" ? "Find a file…" : "Filter actions…";
+      if (activeTab === "actions") renderActions(input.value);
+      else render(input.value);
+    });
+  });
 
   const flat = [];
   function flatten(n) {
@@ -48,11 +75,25 @@ export function setupPalette(tree, openFile, zoomToNode) {
       </div>`).join("");
   }
 
+  function renderActions(query) {
+    const q = query.toLowerCase();
+    const filtered = PROMPT_TEMPLATES.filter(t => !q || t.label.toLowerCase().includes(q));
+    sel = 0;
+    current = filtered;
+    results.innerHTML = filtered.map((t, i) => `
+      <div class="row action-row ${i === sel ? "sel" : ""}" data-action-i="${i}">
+        <span class="action-label">${t.label}</span>
+      </div>`).join("");
+  }
+
   function open() {
     wrap.classList.add("open");
     input.value = "";
     sel = 0; current = [];
     results.innerHTML = "";
+    activeTab = "files";
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === "files"));
+    input.placeholder = "Find a file…";
     setTimeout(() => input.focus(), 0);
   }
   function close() { wrap.classList.remove("open"); }
@@ -64,18 +105,82 @@ export function setupPalette(tree, openFile, zoomToNode) {
     setTimeout(() => openFile(node), 620);
   }
 
-  input.addEventListener("input", () => render(input.value));
+  async function commitAction() {
+    const template = current[sel];
+    if (!template) return;
+    close();
+
+    const { state } = window.__tb || {};
+    const paths = state ? [...state.selection] : [];
+
+    const { showToast } = await import("/static/control-center.js");
+
+    if (paths.length === 0) {
+      showToast("Select files first");
+      return;
+    }
+
+    const root = window.__tb?.tree?.path || "";
+    try {
+      const parts = await Promise.all(
+        paths.map(async p => {
+          const r = await fetch(`/api/file?path=${encodeURIComponent(p)}`);
+          if (!r.ok) return null;
+          const d = await r.json();
+          const rel = root && p.startsWith(root) ? p.slice(root.length).replace(/^\//, "") : p;
+          const ext = rel.split(".").pop() || "txt";
+          const content = d.content ?? d.message ?? "";
+          return `# File: ${rel}\n\`\`\`${ext}\n${content}\n\`\`\``;
+        })
+      );
+      const valid = parts.filter(Boolean);
+      const projectName = root.split("/").pop() || "project";
+      const contextBlock =
+        `# Context: ${valid.length} file${valid.length > 1 ? "s" : ""} from ${projectName}\n\n` +
+        valid.join("\n\n");
+      const final = template.prompt.replace("{context}", contextBlock);
+      await navigator.clipboard.writeText(final);
+      showToast(`Copied — ${template.label}`);
+    } catch {
+      showToast("Copy failed");
+    }
+  }
+
+  input.addEventListener("input", () => {
+    if (activeTab === "actions") renderActions(input.value);
+    else render(input.value);
+  });
   input.addEventListener("keydown", e => {
-    if (e.key === "ArrowDown") { e.preventDefault(); sel = Math.min(current.length - 1, sel + 1); render(input.value); }
-    else if (e.key === "ArrowUp") { e.preventDefault(); sel = Math.max(0, sel - 1); render(input.value); }
-    else if (e.key === "Enter") { e.preventDefault(); commit(); }
-    else if (e.key === "Escape") { e.preventDefault(); close(); }
+    const list = current;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      sel = Math.min(list.length - 1, sel + 1);
+      if (activeTab === "actions") renderActions(input.value);
+      else render(input.value);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      sel = Math.max(0, sel - 1);
+      if (activeTab === "actions") renderActions(input.value);
+      else render(input.value);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeTab === "actions") commitAction();
+      else commit();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      close();
+    }
   });
   results.addEventListener("click", e => {
     const row = e.target.closest(".row");
     if (!row) return;
-    sel = +row.dataset.i;
-    commit();
+    if (row.dataset.actionI !== undefined) {
+      sel = +row.dataset.actionI;
+      commitAction();
+    } else {
+      sel = +row.dataset.i;
+      commit();
+    }
   });
   window.addEventListener("keydown", e => {
     if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); open(); }
