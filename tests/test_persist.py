@@ -26,3 +26,18 @@ def test_save_creates_gitignore(tmp_path):
     gi = tmp_path / ".treeboard" / ".gitignore"
     assert gi.exists()
     assert "*" in gi.read_text()
+
+
+def test_load_corrupt_json_returns_default(tmp_path):
+    d = tmp_path / ".treeboard"
+    d.mkdir()
+    (d / "bad.json").write_text("not json{{", encoding="utf-8")
+    result = load_json(tmp_path, "bad", default={"fallback": True})
+    assert result == {"fallback": True}
+
+
+def test_treeboard_dir_idempotent(tmp_path):
+    d1 = treeboard_dir(tmp_path)
+    d2 = treeboard_dir(tmp_path)
+    assert d1 == d2
+    assert d1.is_dir()
