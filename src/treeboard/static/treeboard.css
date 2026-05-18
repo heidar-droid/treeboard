@@ -157,7 +157,7 @@ body::before {
 /* ============ POPOVER ============ */
 .popover {
   position: absolute; z-index: 5;
-  max-height: 540px;
+  max-width: 90vw; max-height: 90vh;
   background: var(--pop-bg);
   backdrop-filter: blur(20px) saturate(1.2);
   -webkit-backdrop-filter: blur(20px) saturate(1.2);
