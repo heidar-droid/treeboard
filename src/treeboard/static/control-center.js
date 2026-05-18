@@ -15,6 +15,7 @@ let _tokenAbort = null;
 
 export function setupControlCenter(treeRoot) {
   _buildFlashOverlay();
+  _buildSnapFlash();
   _buildPinBar(treeRoot);
   _buildBar();
   state.subscribe(_onStateChange);
@@ -22,6 +23,7 @@ export function setupControlCenter(treeRoot) {
   setTimeout(() => {
     document.querySelector(".cc-bar")?.classList.add("visible");
     document.querySelector(".pin-bar")?.classList.add("visible");
+    document.getElementById("cc-icon-snap")?.addEventListener("click", _takeSnapshot);
   }, 1500);
 }
 
@@ -29,6 +31,13 @@ function _buildFlashOverlay() {
   const el = document.createElement("div");
   el.className = "cc-mode-flash";
   el.id = "cc-mode-flash";
+  document.body.appendChild(el);
+}
+
+function _buildSnapFlash() {
+  const el = document.createElement("div");
+  el.className = "cc-snap-flash";
+  el.id = "cc-snap-flash";
   document.body.appendChild(el);
 }
 
@@ -102,8 +111,8 @@ function _buildBar() {
   bar.appendChild(_sep());
 
   [
-    { icon: "⌘", title: "Action palette (coming soon)", id: "cc-icon-cmd" },
-    { icon: "★", title: "Bookmarks (coming soon)",      id: "cc-icon-bm"  },
+    { icon: "★", title: "Bookmarks", id: "cc-icon-bm"   },
+    { icon: "◉", title: "Snapshot",  id: "cc-icon-snap" },
   ].forEach(({ icon, title, id }) => {
     const el = document.createElement("div");
     el.className = "cc-icon";
@@ -222,6 +231,32 @@ async function _copyForAI() {
     showToast(`Copied - ${tokenEl?.textContent || ""}`);
   } catch {
     showToast("Copy failed");
+  }
+}
+
+async function _takeSnapshot() {
+  const paths = [...state.selection];
+  if (paths.length === 0) {
+    showToast("Select files first, then snapshot");
+    return;
+  }
+  const flash = document.getElementById("cc-snap-flash");
+  if (flash) {
+    flash.classList.remove("flash");
+    void flash.offsetWidth;
+    flash.classList.add("flash");
+  }
+  try {
+    const r = await fetch("/api/snapshot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paths }),
+    });
+    if (!r.ok) { showToast("Snapshot failed"); return; }
+    const d = await r.json();
+    showToast(`Snapshot — ${d.files.length} file${d.files.length > 1 ? "s" : ""} saved`);
+  } catch {
+    showToast("Snapshot failed");
   }
 }
 
