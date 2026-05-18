@@ -14,6 +14,8 @@ import { setupHeatmap, applyHeatmap, clearHeatmap } from "/static/heatmap.js";
 import { setupGraphOverlay, redrawGraph, clearGraph } from "/static/graph-overlay.js";
 import { setupContentSearch } from "/static/search-content.js";
 import { setupBookmarks, syncBookmarkHighlights } from "/static/bookmarks.js";
+import { setupMinimap, redrawMinimap } from "/static/minimap.js";
+import { setupProjectTabs } from "/static/project-tabs.js";
 
 const board = document.getElementById("board");
 const viewport = document.getElementById("viewport");
@@ -68,6 +70,8 @@ async function load() {
   setupGraphOverlay(board);
   setupContentSearch();
   setupBookmarks(board);
+  setupMinimap(board, camera, viewport);
+  setupProjectTabs();
   setupPalette(
     tree,
     node => window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } })),
@@ -158,6 +162,7 @@ function redraw({ initial = false } = {}) {
   world.style.height = `${h}px`;
   renderBoard({ nodes, edges }, board, { collapsed, emptyFolders });
   syncBookmarkHighlights(board);
+  redrawMinimap(board, camera, viewport);
   if (state.mode === "git") {
     const statusMap = window.__tb_gitStatus || {};
     applyGitColors(board, statusMap);
