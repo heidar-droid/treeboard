@@ -157,7 +157,7 @@ body::before {
 /* ============ POPOVER ============ */
 .popover {
   position: absolute; z-index: 5;
-  width: 440px; max-height: 540px;
+  max-height: 540px;
   background: var(--pop-bg);
   backdrop-filter: blur(20px) saturate(1.2);
   -webkit-backdrop-filter: blur(20px) saturate(1.2);
@@ -176,6 +176,16 @@ body::before {
 .popover.closing { opacity: 0; transform: scale(.7); }
 .popover.dragging { transition: none !important; cursor: grabbing;
   box-shadow: 0 36px 100px rgba(0,0,0,.7), 0 0 0 1px rgba(182,212,167,.35); }
+
+/* Named states — own width + height; base .popover no longer sets width */
+.popover { transition: width 240ms cubic-bezier(.2,.7,.2,1.05), height 240ms cubic-bezier(.2,.7,.2,1.05); }
+.popover[data-state="compact"]  { width: 240px; height: 140px; }
+.popover[data-state="standard"] { width: 320px; height: 280px; }
+.popover[data-state="expanded"] { width: 540px; height: 440px; }
+.popover[data-state="full"]     { width: 720px; height: 600px; }
+@media (prefers-reduced-motion: reduce) {
+  .popover { transition: none; }
+}
 
 .pop-header { position: relative; padding: 16px 18px 12px; display: flex;
   align-items: center; gap: 10px; border-bottom: 1px solid rgba(182,212,167,.1);
