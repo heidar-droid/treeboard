@@ -15,6 +15,17 @@ const TYPE_LABELS = {
 
 const popovers = []; // up to 2 active
 
+function _gitStatus() {
+  return window.__tb_gitStatus || {};
+}
+
+function _relPath(absPath) {
+  const root = window.__tb?.tree?.path || "";
+  return root && absPath.startsWith(root)
+    ? absPath.slice(root.length).replace(/^\//, "")
+    : absPath;
+}
+
 export function setupPopovers(viewport) {
   window.addEventListener("treeboard:open", e => openFor(e.detail.node, viewport));
   window.addEventListener("treeboard:escape", () => {
@@ -50,7 +61,25 @@ async function openFor(node, viewport) {
 
   const pop = document.createElement("div");
   pop.className = "popover";
-  pop.innerHTML = headerHTML(node, data) + titleHTML(node, data) + `<div class="pop-body">${bodyHTML(node, data)}</div>`;
+  const inGitMode = window.__tb?.state?.mode === "git";
+  const gitSt = inGitMode ? (_gitStatus()[_relPath(node.path)] || null) : null;
+  const hasDiff = gitSt === "modified" || gitSt === "deleted" || gitSt === "renamed";
+  const showDiffTab = inGitMode && node.kind !== "dir" && hasDiff;
+
+  const bodyContent = bodyHTML(node, data);
+
+  if (showDiffTab) {
+    pop.innerHTML =
+      headerHTML(node, data) +
+      titleHTML(node, data) +
+      `<div class="pop-tabs">
+         <div class="pop-tab active" data-tab="preview">PREVIEW</div>
+         <div class="pop-tab" data-tab="diff">DIFF</div>
+       </div>` +
+      `<div class="pop-body" data-active-tab="preview">${bodyContent}</div>`;
+  } else {
+    pop.innerHTML = headerHTML(node, data) + titleHTML(node, data) + `<div class="pop-body">${bodyContent}</div>`;
+  }
   viewport.appendChild(pop);
 
   const handle = { pop, node };
@@ -58,6 +87,10 @@ async function openFor(node, viewport) {
 
   positionPopover(handle, viewport);
   attachHandlers(handle, viewport);
+
+  if (showDiffTab) {
+    _wireDiffTabs(pop, node.path);
+  }
 
   // trigger open animation on next frame
   requestAnimationFrame(() => pop.classList.add("open"));
@@ -241,4 +274,65 @@ function attachHandlers(h, viewport) {
     redrawLeader(h, viewport);
   });
   window.addEventListener("mouseup", () => { if (drag) { h.pop.classList.remove("dragging"); drag = null; } });
+}
+
+function _wireDiffTabs(pop, absPath) {
+  const tabs = pop.querySelectorAll(".pop-tab");
+  const body = pop.querySelector(".pop-body");
+  body.dataset.previewHtml = body.innerHTML;
+
+  tabs.forEach(tab => {
+    tab.addEventListener("click", async e => {
+      e.stopPropagation();
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === target));
+      body.dataset.activeTab = target;
+
+      if (target === "diff") {
+        if (body.querySelector(".diff-view")) return;
+        body.innerHTML = `<div class="diff-empty">Loading diff...</div>`;
+        try {
+          const rel = _relPath(absPath);
+          const r = await fetch(`/api/git/diff?path=${encodeURIComponent(rel)}`);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const { diff } = await r.json();
+          if (!diff || diff.trim() === "") {
+            body.innerHTML = `<div class="diff-empty">No diff available for this file.</div>`;
+          } else {
+            body.innerHTML = `<div class="diff-view">${_renderDiffLines(diff)}</div>`;
+          }
+        } catch (err) {
+          body.innerHTML = `<div class="diff-empty">Failed to load diff: ${escapeHTML(String(err.message || err))}</div>`;
+        }
+      } else {
+        body.innerHTML = body.dataset.previewHtml;
+      }
+    });
+  });
+}
+
+function _renderDiffLines(diffText) {
+  return diffText
+    .split("\n")
+    .map(line => {
+      if (
+        line.startsWith("+++") ||
+        line.startsWith("---") ||
+        line.startsWith("diff ") ||
+        line.startsWith("index ")
+      ) {
+        return `<span class="diff-meta">${escapeHTML(line)}</span>`;
+      }
+      if (line.startsWith("@@")) {
+        return `<span class="diff-hunk">${escapeHTML(line)}</span>`;
+      }
+      if (line.startsWith("+")) {
+        return `<span class="diff-add">${escapeHTML(line)}</span>`;
+      }
+      if (line.startsWith("-")) {
+        return `<span class="diff-del">${escapeHTML(line)}</span>`;
+      }
+      return `<span class="diff-ctx">${escapeHTML(line)}</span>`;
+    })
+    .join("");
 }
