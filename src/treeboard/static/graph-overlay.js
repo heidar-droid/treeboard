@@ -34,6 +34,8 @@ export function clearGraph(board) {
   const g = board.querySelector("#graph-edges");
   if (g) g.innerHTML = "";
   board.querySelectorAll(".node[data-dead-code]").forEach(n => n.removeAttribute("data-dead-code"));
+  _importMap = {};
+  _inboundCount = {};
 }
 
 async function _fetchAndDraw(board) {
