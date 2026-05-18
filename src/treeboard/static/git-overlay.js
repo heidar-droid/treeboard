@@ -3,6 +3,7 @@ import { state } from "/static/state.js";
 let _statusMap = {};
 let _filterActive = false;
 let _collapsedSnapshot = null;
+let _staggerTimers = [];
 
 export function setupGitOverlay(board) {
   state.subscribe(s => {
@@ -41,7 +42,11 @@ export function toggleChangedFilter(collapsed, redraw) {
     })
   );
 
+  const visited = new Set();
+
   function _shouldKeep(node) {
+    if (visited.has(node.path)) return false;
+    visited.add(node.path);
     if (node.kind !== "dir") return dirtyPaths.has(node.path);
     if (!node.children || node.children.length === 0) return false;
     return node.children.some(c => _shouldKeep(c));
@@ -68,8 +73,14 @@ export function applyGitColors(board, statusMap) {
   const root = window.__tb?.tree?.path || "";
   const nodes = Array.from(board.querySelectorAll(".node"));
 
+  // Clear any in-flight stagger timers from a previous apply.
+  _staggerTimers.forEach(id => clearTimeout(id));
+  _staggerTimers = [];
+
   nodes.forEach((g, index) => {
-    setTimeout(() => {
+    // Cap stagger at 25 nodes (450ms max) — enough for the wave effect.
+    const delay = Math.min(index, 25) * 18;
+    const id = setTimeout(() => {
       const absPath = g.dataset.path || "";
       const rel = root && absPath.startsWith(root)
         ? absPath.slice(root.length).replace(/^\//, "")
@@ -81,11 +92,16 @@ export function applyGitColors(board, statusMap) {
       } else {
         g.removeAttribute("data-git-status");
       }
-    }, index * 18);
+    }, delay);
+    _staggerTimers.push(id);
   });
 }
 
 export function clearGitColors(board) {
+  // Cancel any in-flight stagger timers.
+  _staggerTimers.forEach(id => clearTimeout(id));
+  _staggerTimers = [];
+
   board.querySelectorAll(".node[data-git-status]").forEach(g => {
     g.removeAttribute("data-git-status");
   });
@@ -98,6 +114,8 @@ async function _fetchAndApply(board) {
     if (!r.ok) return;
     _statusMap = await r.json();
     window.__tb_gitStatus = _statusMap;
+    // Set the map synchronously before timers fire so popover.js
+    // always reads a consistent status map, never stale DOM attributes.
     applyGitColors(board, _statusMap);
   } catch {}
 }
