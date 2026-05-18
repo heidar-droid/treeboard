@@ -618,3 +618,111 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
   color: var(--dim);
   letter-spacing: .1em;
 }
+
+/* ============================================================
+   CHUNK E — Heatmap, Import Graph, Content Search
+   ============================================================ */
+
+/* ── Heatmap ─────────────────────────────────────────────── */
+.node[data-heat-level="0"] .pill {
+  stroke: var(--sage) !important;
+  stroke-width: 1.8 !important;
+  filter: url(#sageGlow);
+}
+.node[data-heat-level="0"] .lbl { fill: #e6efde !important; }
+.node[data-heat-level="0"] { animation: heat-pulse 2.5s ease-in-out infinite; }
+@keyframes heat-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .65; }
+}
+
+.node[data-heat-level="1"] .pill { stroke: rgba(182,212,167,.65) !important; }
+.node[data-heat-level="1"] .lbl  { fill: var(--folder-lbl) !important; }
+
+.node[data-heat-level="2"] .pill { stroke: rgba(182,212,167,.35) !important; }
+
+.node[data-heat-level="3"] .pill { stroke: rgba(182,212,167,.18) !important; }
+
+/* ── Import graph edges ──────────────────────────────────── */
+.import-edge {
+  stroke: var(--sage);
+  stroke-width: 1.1;
+  fill: none;
+  opacity: 0;
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  vector-effect: non-scaling-stroke;
+  animation: edge-draw-in .7s ease forwards;
+}
+@keyframes edge-draw-in {
+  to { stroke-dashoffset: 0; opacity: .4; }
+}
+
+/* Dead code radar */
+.node[data-dead-code] .pill { stroke: rgba(239,68,68,.35) !important; }
+.node[data-dead-code] { animation: dead-pulse 2.4s ease-in-out infinite; }
+@keyframes dead-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .6; }
+}
+
+/* ── Content search overlay ──────────────────────────────── */
+.search-bar-overlay {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  z-index: 101;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  background: rgba(6,12,9,.94);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid rgba(182,212,167,.22);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s cubic-bezier(.2,.7,.2,1.05);
+}
+.search-bar-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.search-bar-input {
+  background: transparent;
+  border: 0;
+  outline: none;
+  font: 400 12px 'Geist Mono', monospace;
+  color: var(--sage);
+  letter-spacing: .04em;
+  min-width: 260px;
+}
+.search-bar-input::placeholder { color: var(--file-lbl); }
+
+.search-bar-count {
+  font: 400 10px 'Geist Mono', monospace;
+  color: var(--file-lbl);
+  letter-spacing: .06em;
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+/* Hit pills */
+.node[data-search-hits] .pill {
+  stroke: var(--sage) !important;
+  stroke-width: 1.8 !important;
+  filter: url(#sageGlow);
+  animation: search-hit-pulse 1.2s ease-in-out infinite;
+}
+@keyframes search-hit-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .55; }
+}
+
+/* Dim non-matching pills */
+.node[data-search-dim] { opacity: .2; }
