@@ -5,6 +5,9 @@ import { setupPopovers } from "/static/popover.js";
 import { setupPalette } from "/static/palette.js";
 import { setupContextMenu } from "/static/context.js";
 import { setupLiveUpdates } from "/static/live.js";
+import { setupControlCenter } from "/static/control-center.js";
+import { wireMultiselect, syncSelectionHighlight } from "/static/multiselect.js";
+import { state } from "/static/state.js";
 
 const board = document.getElementById("board");
 const viewport = document.getElementById("viewport");
@@ -53,6 +56,7 @@ async function load() {
   markDefaultCollapsed(tree, 0);
   enforceCap();
   redraw({ initial: true });
+  setupControlCenter(tree);
   setupPalette(
     tree,
     node => window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } })),
@@ -212,11 +216,15 @@ function wireInteractions(nodes) {
       window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } }));
     });
   });
+  wireMultiselect(board, nodeIndex);
+  syncSelectionHighlight(board, state.selection);
 }
 
 // keyboard
 window.addEventListener("keydown", e => {
   if (e.key === "Escape") {
+    state.clearSelection();
+    syncSelectionHighlight(board, state.selection);
     window.dispatchEvent(new CustomEvent("treeboard:escape"));
     return;
   }
@@ -233,6 +241,6 @@ window.addEventListener("keydown", e => {
 window.addEventListener("DOMContentLoaded", load);
 
 // expose for other modules (popover, palette, context, live)
-window.__tb = { camera, nodeIndex, redraw, get tree() { return tree; } };
+window.__tb = { camera, nodeIndex, redraw, state, get tree() { return tree; } };
 
 setupPopovers(viewport);
