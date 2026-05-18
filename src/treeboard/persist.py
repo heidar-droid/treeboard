@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 import pathlib
+import threading
 
 _MISSING = object()
+_RW_LOCK = threading.Lock()
 
 
 def treeboard_dir(root: pathlib.Path) -> pathlib.Path:

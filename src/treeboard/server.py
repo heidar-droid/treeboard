@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import pathlib
+import shutil
 import subprocess
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
@@ -17,7 +19,7 @@ from treeboard.watcher import TreeWatcher
 from treeboard.git import git_status, git_diff
 from treeboard.search import content_search
 from treeboard.imports import parse_imports
-from treeboard.persist import load_json, save_json
+from treeboard.persist import load_json, save_json, _RW_LOCK
 
 
 def build_app(
@@ -163,35 +165,49 @@ def build_app(
                 chars = 0
             return {"path": str(p), "chars": chars, "tokens": max(1, chars // 4)}
         if p.is_dir():
+            SKIP_DIRS = {".git", "node_modules", "__pycache__", ".treeboard"}
             total = 0
             for f in p.rglob("*"):
-                if f.is_file() and f.stat().st_size < 2 * 1024 * 1024:
-                    try:
-                        total += len(f.read_text(errors="ignore"))
-                    except OSError:
-                        pass
+                if not f.is_file():
+                    continue
+                if any(part in SKIP_DIRS for part in f.parts):
+                    continue
+                try:
+                    if f.stat().st_size > 2 * 1024 * 1024:
+                        continue
+                    total += len(f.read_text(errors="ignore"))
+                except OSError:
+                    pass
             return {"path": str(p), "chars": total, "tokens": max(1, total // 4)}
         raise HTTPException(404, "not found")
 
     # ── SNAPSHOT ─────────────────────────────────────────────────────────────
     @app.post("/api/snapshot")
     def create_snapshot(payload: dict):
-        import time, shutil
         paths = payload.get("paths", [])
         if not paths:
             raise HTTPException(422, "paths required")
-        snap_id = str(int(time.time() * 1000))
+        # Validate all paths first — before touching disk
+        safe_paths = []
+        for raw in paths:
+            try:
+                p = _safe_path(raw)
+                if p.is_file():
+                    safe_paths.append(p)
+            except HTTPException:
+                pass  # silently skip invalid/out-of-root paths
+        if not safe_paths:
+            raise HTTPException(422, "no valid paths provided")
+        snap_id = str(time.time_ns())
         snap_dir = root_p / ".treeboard" / "snapshots" / snap_id
         snap_dir.mkdir(parents=True, exist_ok=True)
         saved = []
-        for raw in paths:
-            p = _safe_path(raw)
-            if p.is_file():
-                rel = p.relative_to(root_p)
-                dest = snap_dir / rel
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(p, dest)
-                saved.append(str(rel))
+        for p in safe_paths:
+            rel = p.relative_to(root_p)
+            dest = snap_dir / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(p, dest)
+            saved.append(str(rel))
         return {"snapshot_id": snap_id, "files": saved}
 
     # ── NOTES ────────────────────────────────────────────────────────────────
@@ -203,13 +219,16 @@ def build_app(
     def upsert_note(payload: dict):
         path = payload.get("path", "")
         note = payload.get("note", "").strip()
+        if not path:
+            raise HTTPException(422, "path required")
         _safe_path(path)
-        notes = load_json(root_p, "notes", default={})
-        if note:
-            notes[path] = note
-        else:
-            notes.pop(path, None)
-        save_json(root_p, "notes", notes)
+        with _RW_LOCK:
+            notes = load_json(root_p, "notes", default={})
+            if note:
+                notes[path] = note
+            else:
+                notes.pop(path, None)
+            save_json(root_p, "notes", notes)
         return {"ok": True}
 
     # ── BOOKMARKS ────────────────────────────────────────────────────────────
@@ -221,13 +240,18 @@ def build_app(
     def update_bookmark(payload: dict):
         path = payload.get("path", "")
         action = payload.get("action", "add")
+        if not path:
+            raise HTTPException(422, "path required")
         _safe_path(path)
-        pins: list = load_json(root_p, "bookmarks", default=[])
-        if action == "add" and path not in pins:
-            pins.append(path)
-        elif action == "remove":
-            pins = [p for p in pins if p != path]
-        save_json(root_p, "bookmarks", pins)
+        if action not in ("add", "remove"):
+            raise HTTPException(422, "action must be 'add' or 'remove'")
+        with _RW_LOCK:
+            pins: list = load_json(root_p, "bookmarks", default=[])
+            if action == "add" and path not in pins:
+                pins.append(path)
+            elif action == "remove":
+                pins = [p for p in pins if p != path]
+            save_json(root_p, "bookmarks", pins)
         return {"ok": True, "bookmarks": pins}
 
     # ── VIEWS ────────────────────────────────────────────────────────────────
@@ -241,9 +265,10 @@ def build_app(
         state = payload.get("state", {})
         if not name:
             raise HTTPException(422, "name required")
-        views = load_json(root_p, "views", default={})
-        views[name] = state
-        save_json(root_p, "views", views)
+        with _RW_LOCK:
+            views = load_json(root_p, "views", default={})
+            views[name] = state
+            save_json(root_p, "views", views)
         return {"ok": True}
 
     @app.delete("/api/views")
