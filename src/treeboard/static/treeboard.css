@@ -194,7 +194,7 @@ body::before {
   text-overflow: ellipsis; }
 .pop-header .actions { display: flex; gap: 6px; }
 .pop-header .ico { width: 24px; height: 24px; display: flex; align-items: center;
-  justify-content: center; background: transparent; border: 1px solid #1f2c25;
+  justify-content: center; background: transparent; border: 1px solid var(--line);
   border-radius: 4px; cursor: pointer; color: var(--file-lbl); transition: all .15s; }
 .pop-header .ico:hover { color: var(--sage); border-color: var(--sage); }
 .pop-header .ico svg { width: 12px; height: 12px; }
