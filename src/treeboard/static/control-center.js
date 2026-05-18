@@ -111,6 +111,7 @@ function _buildBar() {
   bar.appendChild(_sep());
 
   [
+    { icon: "⌕", title: "Search file contents",  id: "cc-icon-search" },
     { icon: "★", title: "Bookmarks", id: "cc-icon-bm"   },
     { icon: "◉", title: "Snapshot",  id: "cc-icon-snap" },
   ].forEach(({ icon, title, id }) => {
