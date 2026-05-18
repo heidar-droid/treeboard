@@ -211,8 +211,9 @@ function positionPopover(h, viewport) {
   const rect = viewport.getBoundingClientRect();
   const node = h.node;
   const cam = window.__tb.camera.get();
-  const pillCx = node.__cx * cam.k + cam.x;
-  const pillBotY = (node.__y + node.__h) * cam.k + cam.y;
+  const vbo = window.__tb.viewBoxOffset || { x: 0, y: 0 };
+  const pillCx = (node.__cx - vbo.x) * cam.k + cam.x;
+  const pillBotY = (node.__y + node.__h - vbo.y) * cam.k + cam.y;
   const POP_W = 440, POP_H_MAX = 540, MARGIN = 28;
   // Prefer to the right of the pill; flip to the left if no room.
   let popX = pillCx + MARGIN;

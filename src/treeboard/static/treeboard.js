@@ -93,7 +93,11 @@ async function load() {
       }
       if (ancestors.length) redraw();
       const updated = nodeIndex.get(node.path);
-      if (updated) camera.fitTo(nodeBoundingBox(updated), { padding: 0.5 });
+      if (updated) {
+        const vbo = window.__tb?.viewBoxOffset || { x: 0, y: 0 };
+        const nb = nodeBoundingBox(updated);
+        camera.fitTo({ x: nb.x - vbo.x, y: nb.y - vbo.y, w: nb.w, h: nb.h }, { padding: 0.5 });
+      }
     },
   );
   setupContextMenu(viewport, path => {
@@ -160,6 +164,9 @@ function redraw({ initial = false } = {}) {
   board.setAttribute("height", h);
   world.style.width = `${w}px`;
   world.style.height = `${h}px`;
+  // viewBox origin in SVG pixel space — camera translate works in SVG pixels, not canvas coords
+  if (window.__tb) window.__tb.viewBoxOffset = { x: bounds.minX - PAD, y: bounds.minY - PAD };
+
   renderBoard({ nodes, edges }, board, { collapsed, emptyFolders });
   syncBookmarkHighlights(board);
   redrawMinimap(board, camera, viewport);
@@ -172,10 +179,10 @@ function redraw({ initial = false } = {}) {
 
   wireInteractions(nodes);
 
-  // Initial fit-to-window
+  // Initial fit-to-window — pass SVG pixel coords (always PAD,PAD from viewBox origin)
   if (initial) {
     camera.fitTo({
-      x: bounds.minX, y: bounds.minY,
+      x: PAD, y: PAD,
       w: bounds.maxX - bounds.minX, h: bounds.maxY - bounds.minY,
     }, { padding: 0.1, duration: 0 });
     // play cascade reveal
@@ -255,8 +262,9 @@ window.addEventListener("keydown", e => {
   if ((e.metaKey || e.ctrlKey) && e.key === "0") {
     e.preventDefault();
     const { bounds } = layout(tree, { collapsed });
+    const PAD = 200;
     camera.fitTo({
-      x: bounds.minX, y: bounds.minY,
+      x: PAD, y: PAD,
       w: bounds.maxX - bounds.minX, h: bounds.maxY - bounds.minY,
     }, { padding: 0.1 });
   }
@@ -271,6 +279,6 @@ window.addEventListener("keydown", e => {
 window.addEventListener("DOMContentLoaded", load);
 
 // expose for other modules (popover, palette, context, live)
-window.__tb = { camera, nodeIndex, redraw, state, collapsed, get tree() { return tree; } };
+window.__tb = { camera, nodeIndex, redraw, state, collapsed, viewBoxOffset: { x: 0, y: 0 }, get tree() { return tree; } };
 
 setupPopovers(viewport);

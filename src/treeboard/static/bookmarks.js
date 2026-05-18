@@ -114,7 +114,8 @@ async function _toggleBookmarkPanel() {
   const [first] = _bookmarks;
   const node = window.__tb?.nodeIndex?.get(first);
   if (node) {
-    window.__tb.camera.fitTo({ x: node.__x, y: node.__y, w: node.__w, h: node.__h }, { padding: 2 });
+    const vbo = window.__tb.viewBoxOffset || { x: 0, y: 0 };
+    window.__tb.camera.fitTo({ x: node.__x - vbo.x, y: node.__y - vbo.y, w: node.__w, h: node.__h }, { padding: 2 });
   } else {
     showToast("Bookmarked file not visible — expand its folder first");
   }
