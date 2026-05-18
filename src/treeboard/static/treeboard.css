@@ -262,3 +262,208 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
   0%   { opacity: 1; }
   100% { opacity: 0; transform: scale(.7); }
 }
+
+/* ============================================================
+   CHUNK B — Control Center, Multi-Select, Toast, Pin Bar
+   ============================================================ */
+
+/* ── Control Center pill ─────────────────────────────────── */
+.cc-bar {
+  position: fixed;
+  bottom: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 16px;
+  background: rgba(6,12,9,.92);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid rgba(182,212,167,.18);
+  border-radius: 40px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.6), 0 0 0 1px rgba(0,0,0,.5) inset;
+  white-space: nowrap;
+  transition: bottom .55s cubic-bezier(.2,.7,.2,1.05);
+  user-select: none;
+}
+.cc-bar.visible { bottom: 16px; }
+
+.cc-sep {
+  width: 1px; height: 20px;
+  background: rgba(255,255,255,.07);
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+
+/* Mode buttons */
+.cc-mode {
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 10px; border-radius: 20px;
+  font: 500 10.5px 'Geist Mono', monospace;
+  letter-spacing: .04em; color: var(--file-lbl);
+  cursor: pointer; transition: background .18s ease, color .18s ease;
+}
+.cc-mode:hover:not(.active) { color: var(--dim); }
+.cc-mode.active { color: var(--sage); background: rgba(182,212,167,.08); }
+.cc-mode.git-mode { color: rgba(245,158,11,.6); }
+.cc-mode.git-mode.active { color: #f59e0b; background: rgba(245,158,11,.08); }
+
+/* Mode flash overlay */
+.cc-mode-flash {
+  position: fixed; inset: 0; pointer-events: none; z-index: 99;
+  background: rgba(182,212,167,0);
+}
+.cc-mode-flash.flash { animation: cc-flash .3s ease; }
+@keyframes cc-flash {
+  0%   { background: rgba(182,212,167,0); }
+  40%  { background: rgba(182,212,167,.04); }
+  100% { background: rgba(182,212,167,0); }
+}
+
+/* Git status badge */
+.cc-git-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 12px;
+  font: 400 10px 'Geist Mono', monospace;
+  background: rgba(182,212,167,.04);
+  border: 1px solid var(--line-2);
+  color: var(--file-lbl);
+}
+.cc-git-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
+
+/* AI copy button */
+.cc-ai {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 14px; border-radius: 20px;
+  font: 600 11px 'Geist Mono', monospace; letter-spacing: .03em;
+  color: var(--sage);
+  background: rgba(182,212,167,.1);
+  border: 1px solid rgba(182,212,167,.28);
+  cursor: pointer; position: relative; overflow: hidden;
+  transition: background .15s, border-color .15s;
+}
+.cc-ai:hover { background: rgba(182,212,167,.16); border-color: rgba(182,212,167,.45); }
+.cc-ai:active { transform: scale(.98); }
+.cc-ai .cc-ai-token {
+  font-size: 9.5px; font-weight: 400; color: rgba(182,212,167,.5);
+}
+.cc-ai-shimmer {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg,
+    transparent 0%, rgba(182,212,167,.18) 50%, transparent 100%);
+  transform: translateX(-100%);
+}
+.cc-ai.copying .cc-ai-shimmer { animation: cc-shimmer .55s ease forwards; }
+@keyframes cc-shimmer { to { transform: translateX(100%); } }
+
+/* Quick icon buttons */
+.cc-icon {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-size: 13px;
+  color: var(--file-lbl); cursor: pointer;
+  transition: color .15s, background .15s;
+}
+.cc-icon:hover { color: var(--sage); background: rgba(182,212,167,.08); }
+.cc-icon.active { color: var(--sage); }
+
+/* ── Pin bar ─────────────────────────────────────────────── */
+.pin-bar {
+  position: fixed;
+  bottom: -140px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99;
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 16px;
+  background: rgba(6,12,9,.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 24px;
+  font: 400 10.5px 'Geist Mono', monospace;
+  color: var(--file-lbl);
+  white-space: nowrap;
+  transition: bottom .55s cubic-bezier(.2,.7,.2,1.05) .12s;
+}
+.pin-bar.visible { bottom: 76px; }
+
+.pin-label {
+  font-size: 9px; text-transform: uppercase; letter-spacing: .1em;
+  color: rgba(255,255,255,.2); margin-right: 4px;
+}
+
+.pin-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 12px;
+  font-size: 10px; color: var(--sage);
+  border: 1px solid rgba(182,212,167,.22);
+  background: rgba(182,212,167,.06);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(8px) scale(.85);
+  transition: opacity .3s cubic-bezier(.2,.7,.2,1.05),
+              transform .3s cubic-bezier(.2,.7,.2,1.05),
+              border-color .15s;
+}
+.pin-chip.landed { opacity: 1; transform: translateY(0) scale(1); }
+.pin-chip:hover { border-color: rgba(182,212,167,.45); }
+
+/* ── Multi-select ring & ripple ──────────────────────────── */
+.node.selected .pill {
+  stroke: var(--sage) !important;
+  stroke-width: 2 !important;
+  filter: url(#sageGlow);
+}
+
+.sel-ripple {
+  position: fixed;
+  border-radius: 50%;
+  border: 1.5px solid var(--sage);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 50;
+  animation: sel-ripple-out .5s cubic-bezier(.25,.8,.25,1) forwards;
+}
+@keyframes sel-ripple-out {
+  0%   { transform: scale(1);   opacity: .7; }
+  100% { transform: scale(1.6); opacity: 0;  }
+}
+
+/* ── Toast ───────────────────────────────────────────────── */
+.tb-toast {
+  position: fixed;
+  bottom: -80px; right: 28px;
+  z-index: 200;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 18px;
+  background: rgba(8,14,11,.96);
+  border: 1px solid rgba(182,212,167,.22);
+  border-radius: 14px;
+  font: 400 11px 'Geist Mono', monospace; letter-spacing: .03em;
+  color: var(--folder-lbl);
+  box-shadow: 0 12px 40px rgba(0,0,0,.6);
+  transition: bottom .4s cubic-bezier(.2,.7,.2,1.05);
+  min-width: 220px;
+}
+.tb-toast.visible { bottom: 28px; }
+.tb-toast-icon { color: var(--sage); font-size: 14px; }
+.tb-toast-bar {
+  position: absolute; bottom: 0; left: 0;
+  height: 2px; width: 100%;
+  background: var(--sage);
+  border-radius: 0 0 14px 14px;
+  transform-origin: left;
+  transform: scaleX(0);
+}
+.tb-toast.visible .tb-toast-bar {
+  animation: toast-drain 2.5s linear forwards .1s;
+}
+@keyframes toast-drain {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
