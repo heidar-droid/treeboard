@@ -42,7 +42,7 @@ function _render() {
   bar.innerHTML = tabs.map(t => `
     <div class="proj-tab${t.url === cur ? " active" : ""}" data-url="${_esc(t.url)}" tabindex="0">
       <span class="proj-tab-name">${_esc(t.name)}</span>
-      ${t.url !== cur ? `<span class="proj-tab-x" data-url="${_esc(t.url)}" title="Remove">&times;</span>` : ""}
+      ${t.url !== cur ? `<button class="proj-tab-x" data-url="${_esc(t.url)}" title="Remove">&times;</button>` : ""}
     </div>`).join("") +
     `<div class="proj-tab proj-tab-add" id="proj-tab-add" title="Add project">+</div>`;
 
