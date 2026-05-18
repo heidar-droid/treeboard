@@ -1,30 +1,65 @@
 :root {
+  /* Theme tokens — dark mode (default) */
+  --bg: #06120c;
+  --bg-2: #0a1a12;
+  --ink: #b6d4a7;
+  --ink-muted: #7c8c75;
+  --line: rgba(182,212,167,.18);
+  --line-2: rgba(182,212,167,.32);
+  --accent: #b6d4a7;
+  --pop-bg: rgba(8,14,11,.96);
+  --pop-border: rgba(182,212,167,.32);
+  --shadow: 0 30px 60px -10px rgba(0,0,0,.7);
+  --grid: rgba(182,212,167,.04);
+  --selection: rgba(182,212,167,.22);
+  --resize-handle: rgba(182,212,167,.3);
+
+  /* Preserve any pre-existing non-color vars below */
+  --apple-radius: 28px;
+
+  /* Legacy named vars — kept for existing references during refactor */
   --bg-top: #0d1611;
   --bg-bot: #060a08;
-  --ink: #e6e6e6;
   --dim: #889088;
-  --line: #1c2620;
-  --line-2: #2a3a30;
   --sage: #b6d4a7;
   --sage-glow: rgba(182,212,167,.55);
   --folder-lbl: #cfe0c4;
   --file-lbl: #6e7d6f;
-  --pop-bg: rgba(8,14,11,.96);
-  --pop-border: rgba(182,212,167,.25);
   --tokyo-bg: #1a1b26;
   --tokyo-ink: #c0caf5;
-  --apple-radius: 28px;
+}
+
+[data-theme="light"] {
+  --bg: #f6f4ee;
+  --bg-2: #ecebe2;
+  --ink: #1f2a23;
+  --ink-muted: #5d6b5a;
+  --line: rgba(31,42,35,.16);
+  --line-2: rgba(31,42,35,.28);
+  --accent: #3f6b34;
+  --pop-bg: rgba(255,253,248,.96);
+  --pop-border: rgba(31,42,35,.18);
+  --shadow: 0 30px 60px -10px rgba(60,50,30,.18);
+  --grid: rgba(31,42,35,.05);
+  --selection: rgba(63,107,52,.18);
+  --resize-handle: rgba(31,42,35,.3);
+}
+
+html, body { background: var(--bg); color: var(--ink); }
+html { transition: background-color 240ms ease, color 240ms ease; }
+@media (prefers-reduced-motion: reduce) {
+  html { transition: none; }
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; background: var(--bg-bot); color: var(--ink);
+html, body { margin: 0; padding: 0;
   font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
 }
 body {
   background:
-    radial-gradient(1200px 600px at 50% -10%, rgba(182,212,167,.04), transparent 60%),
-    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bot) 100%);
+    radial-gradient(1200px 600px at 50% -10%, var(--grid), transparent 60%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
   min-height: 100vh;
   overflow: hidden;
 }
@@ -87,17 +122,42 @@ body::before {
 @keyframes pl-node-in { to { opacity: 1; transform: scale(1); } }
 @keyframes pl-edge-draw { to { stroke-dashoffset: 0; } }
 
+/* folder expand: new children scale + fade in with staggered delay */
+.node.expanding-in {
+  opacity: 0;
+  transform: scale(.5);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: node-expand-in .42s cubic-bezier(.2,.7,.2,1.05) forwards;
+}
+@keyframes node-expand-in {
+  0%   { opacity: 0; transform: scale(.5); filter: blur(2px); }
+  60%  { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+/* folder collapse: descendants scale + fade out before redraw */
+.node.collapsing-out {
+  animation: node-collapse-out .22s cubic-bezier(.4,0,.7,.2) forwards;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes node-collapse-out {
+  to { opacity: 0; transform: scale(.4); }
+}
+
 /* reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .edge-pulse { animation: none; opacity: .35; }
   .world.revealing .node, .world.revealing .edge-base { animation: none; opacity: 1;
     transform: none; stroke-dashoffset: 0; }
+  .node.expanding-in, .node.collapsing-out { animation: none; opacity: 1; transform: none; }
 }
 
 /* ============ POPOVER ============ */
 .popover {
   position: absolute; z-index: 5;
-  width: 440px; max-height: 540px;
+  max-width: 90vw; max-height: 90vh;
   background: var(--pop-bg);
   backdrop-filter: blur(20px) saturate(1.2);
   -webkit-backdrop-filter: blur(20px) saturate(1.2);
@@ -117,6 +177,16 @@ body::before {
 .popover.dragging { transition: none !important; cursor: grabbing;
   box-shadow: 0 36px 100px rgba(0,0,0,.7), 0 0 0 1px rgba(182,212,167,.35); }
 
+/* Named states — own width + height; base .popover no longer sets width */
+.popover { transition: width 240ms cubic-bezier(.2,.7,.2,1.05), height 240ms cubic-bezier(.2,.7,.2,1.05); }
+.popover[data-state="compact"]  { width: 240px; height: 140px; }
+.popover[data-state="standard"] { width: 320px; height: 280px; }
+.popover[data-state="expanded"] { width: 540px; height: 440px; }
+.popover[data-state="full"]     { width: 720px; height: 600px; }
+@media (prefers-reduced-motion: reduce) {
+  .popover { transition: none; }
+}
+
 .pop-header { position: relative; padding: 16px 18px 12px; display: flex;
   align-items: center; gap: 10px; border-bottom: 1px solid rgba(182,212,167,.1);
   background: linear-gradient(180deg, rgba(182,212,167,.05), transparent);
@@ -128,13 +198,13 @@ body::before {
 .pop-header .type { font: 500 9.5px 'Geist Mono', monospace; letter-spacing: .22em;
   text-transform: uppercase; padding: 3px 7px; border-radius: 3px;
   color: var(--sage); background: rgba(182,212,167,.08);
-  border: 1px solid rgba(182,212,167,.18); }
+  border: 1px solid var(--line); }
 .pop-header .path { flex: 1; font: 400 10px 'Geist Mono', monospace;
   color: var(--file-lbl); letter-spacing: .04em; white-space: nowrap; overflow: hidden;
   text-overflow: ellipsis; }
 .pop-header .actions { display: flex; gap: 6px; }
 .pop-header .ico { width: 24px; height: 24px; display: flex; align-items: center;
-  justify-content: center; background: transparent; border: 1px solid #1f2c25;
+  justify-content: center; background: transparent; border: 1px solid var(--line);
   border-radius: 4px; cursor: pointer; color: var(--file-lbl); transition: all .15s; }
 .pop-header .ico:hover { color: var(--sage); border-color: var(--sage); }
 .pop-header .ico svg { width: 12px; height: 12px; }
@@ -281,7 +351,7 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
   background: rgba(6,12,9,.92);
   backdrop-filter: blur(20px) saturate(1.2);
   -webkit-backdrop-filter: blur(20px) saturate(1.2);
-  border: 1px solid rgba(182,212,167,.18);
+  border: 1px solid var(--line);
   border-radius: 40px;
   box-shadow: 0 8px 32px rgba(0,0,0,.6), 0 0 0 1px rgba(0,0,0,.5) inset;
   white-space: nowrap;
@@ -447,7 +517,7 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
   z-index: 200;
   display: flex; align-items: center; gap: 12px;
   padding: 12px 18px;
-  background: rgba(8,14,11,.96);
+  background: var(--pop-bg);
   border: 1px solid rgba(182,212,167,.22);
   border-radius: 14px;
   font: 400 11px 'Geist Mono', monospace; letter-spacing: .03em;
@@ -860,7 +930,7 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
   width: 120px;
   height: 80px;
   border-radius: 8px;
-  border: 1px solid rgba(182,212,167,.18);
+  border: 1px solid var(--line);
   box-shadow: 0 4px 20px rgba(0,0,0,.5);
   cursor: crosshair;
   opacity: 0;
@@ -956,3 +1026,41 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
 
 /* Push canvas viewport below the tab bar */
 .viewport { top: 28px; }
+
+/* ── Theme toggle ─────────────────────────────────────────── */
+.theme-toggle {
+  position: fixed; top: 14px; right: 14px;
+  z-index: 30;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  background: var(--pop-bg);
+  color: var(--ink);
+  font-size: 14px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: transform 180ms ease, background-color 180ms ease, color 180ms ease;
+  backdrop-filter: blur(10px);
+}
+.theme-toggle:hover { transform: scale(1.08); }
+.theme-toggle:active { transform: scale(.94); }
+
+/* Cycle button — rotate arrow on hover */
+.popover .pop-header .actions .ico.js-cycle svg { transform: rotate(0deg); transition: transform 200ms ease; }
+.popover .pop-header .actions .ico.js-cycle:hover svg { transform: rotate(90deg); }
+
+/* ── Resize handles ──────────────────────────────────────── */
+.popover[data-state="freeform"] { transition: none; }
+.popover .pop-resize {
+  position: absolute;
+  z-index: 2;
+  background: transparent;
+}
+.popover .pop-resize.rh-e  { right: -3px; top: 44px; bottom: 12px; width: 6px; cursor: ew-resize; }
+.popover .pop-resize.rh-s  { left: 0; right: 12px; bottom: -3px; height: 6px; cursor: ns-resize; }
+.popover .pop-resize.rh-se {
+  right: 0; bottom: 0; width: 14px; height: 14px;
+  cursor: nwse-resize;
+  background:
+    linear-gradient(135deg, transparent 0 50%, var(--resize-handle) 50% 60%, transparent 60% 70%, var(--resize-handle) 70% 80%, transparent 80%);
+}
