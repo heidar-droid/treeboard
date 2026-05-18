@@ -22,6 +22,15 @@ const PROMPT_TEMPLATES = [
   { id: "docs",     label: "Add documentation",        prompt: "Add clear docstrings and inline comments to the following code:\n\n{context}" },
 ];
 
+let _viewsCache = {};
+
+async function _refreshViews() {
+  try {
+    const r = await fetch("/api/views");
+    if (r.ok) _viewsCache = await r.json();
+  } catch {}
+}
+
 export function setupPalette(tree, openFile, zoomToNode) {
   const wrap = document.createElement("div");
   wrap.className = "palette";
@@ -77,12 +86,28 @@ export function setupPalette(tree, openFile, zoomToNode) {
 
   function renderActions(query) {
     const q = query.toLowerCase();
-    const filtered = PROMPT_TEMPLATES.filter(t => !q || t.label.toLowerCase().includes(q));
+    const staticActions = PROMPT_TEMPLATES
+      .filter(t => !q || t.label.toLowerCase().includes(q))
+      .map(t => ({ ...t, _type: "template" }));
+
+    const viewNames = Object.keys(_viewsCache);
+    const viewActions = viewNames
+      .filter(n => !q || n.toLowerCase().includes(q))
+      .map(n => ({ id: `load-view:${n}`, label: `Load view: ${n}`, _type: "view", _name: n }));
+
+    const saveAction = !q || "save view as".includes(q)
+      ? [{ id: "save-view", label: "Save view as...", _type: "save-view" }]
+      : [];
+
+    const all = [...staticActions, ...viewActions, ...saveAction];
     sel = 0;
-    current = filtered;
-    results.innerHTML = filtered.map((t, i) => `
+    current = all;
+
+    results.innerHTML = all.map((t, i) => `
       <div class="row action-row ${i === sel ? "sel" : ""}" data-action-i="${i}">
         <span class="action-label">${t.label}</span>
+        ${t._type === "view" ? `<span class="action-badge">VIEW</span>` : ""}
+        ${t._type === "save-view" ? `<span class="action-badge">SAVE</span>` : ""}
       </div>`).join("");
   }
 
@@ -95,6 +120,7 @@ export function setupPalette(tree, openFile, zoomToNode) {
     tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === "files"));
     input.placeholder = "Find a file…";
     setTimeout(() => input.focus(), 0);
+    _refreshViews();
   }
   function close() { wrap.classList.remove("open"); }
   function commit() {
@@ -106,20 +132,57 @@ export function setupPalette(tree, openFile, zoomToNode) {
   }
 
   async function commitAction() {
-    const template = current[sel];
-    if (!template) return;
+    const item = current[sel];
+    if (!item) return;
     close();
-
-    const { state } = window.__tb || {};
-    const paths = state ? [...state.selection] : [];
 
     const { showToast } = await import("/static/control-center.js");
 
-    if (paths.length === 0) {
-      showToast("Select files first");
+    if (item._type === "save-view") {
+      const name = prompt("Save view as:");
+      if (!name || !name.trim()) return;
+      const { camera, state: tbState, collapsed } = window.__tb || {};
+      if (!camera) return;
+      const viewState = {
+        collapsed: [...collapsed],
+        mode: tbState.mode,
+        camera: camera.get(),
+      };
+      try {
+        await fetch("/api/views", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: name.trim(), state: viewState }),
+        });
+        await _refreshViews();
+        showToast(`Saved view: ${name.trim()}`);
+      } catch {
+        showToast("Save failed");
+      }
       return;
     }
 
+    if (item._type === "view") {
+      const viewState = _viewsCache[item._name];
+      if (!viewState) { showToast("View not found"); return; }
+      const { camera, state: tbState, collapsed, redraw } = window.__tb || {};
+      if (!camera) return;
+      collapsed.clear();
+      (viewState.collapsed || []).forEach(p => collapsed.add(p));
+      if (viewState.mode) tbState.setMode(viewState.mode);
+      redraw();
+      if (viewState.camera) {
+        setTimeout(() => camera.animateTo(viewState.camera, 500), 80);
+      }
+      showToast(`Loaded view: ${item._name}`);
+      return;
+    }
+
+    // Default: prompt template
+    const template = item;
+    const { state: tbState } = window.__tb || {};
+    const paths = tbState ? [...tbState.selection] : [];
+    if (paths.length === 0) { showToast("Select files first"); return; }
     const root = window.__tb?.tree?.path || "";
     try {
       const parts = await Promise.all(
@@ -135,9 +198,7 @@ export function setupPalette(tree, openFile, zoomToNode) {
       );
       const valid = parts.filter(Boolean);
       const projectName = root.split("/").pop() || "project";
-      const contextBlock =
-        `# Context: ${valid.length} file${valid.length > 1 ? "s" : ""} from ${projectName}\n\n` +
-        valid.join("\n\n");
+      const contextBlock = `# Context: ${valid.length} file${valid.length > 1 ? "s" : ""} from ${projectName}\n\n` + valid.join("\n\n");
       const final = template.prompt.replace("{context}", contextBlock);
       await navigator.clipboard.writeText(final);
       showToast(`Copied — ${template.label}`);
