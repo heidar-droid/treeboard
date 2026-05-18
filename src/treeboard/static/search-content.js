@@ -61,6 +61,7 @@ async function _runSearch(query) {
     const r = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
     if (!r.ok) return;
     const results = await r.json();
+    if (!_active) return;
 
     const hits = {};
     for (const item of results) {
