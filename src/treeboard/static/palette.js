@@ -24,13 +24,6 @@ const PROMPT_TEMPLATES = [
 
 let _viewsCache = {};
 
-async function _refreshViews() {
-  try {
-    const r = await fetch("/api/views");
-    if (r.ok) _viewsCache = await r.json();
-  } catch {}
-}
-
 export function setupPalette(tree, openFile, zoomToNode) {
   const wrap = document.createElement("div");
   wrap.className = "palette";
@@ -109,6 +102,16 @@ export function setupPalette(tree, openFile, zoomToNode) {
         ${t._type === "view" ? `<span class="action-badge">VIEW</span>` : ""}
         ${t._type === "save-view" ? `<span class="action-badge">SAVE</span>` : ""}
       </div>`).join("");
+  }
+
+  async function _refreshViews() {
+    try {
+      const r = await fetch("/api/views");
+      if (r.ok) {
+        _viewsCache = await r.json();
+        if (activeTab === "actions") renderActions(input.value);
+      }
+    } catch {}
   }
 
   function open() {
