@@ -9,6 +9,7 @@ import { setupControlCenter } from "/static/control-center.js";
 import { wireMultiselect, syncSelectionHighlight } from "/static/multiselect.js";
 import { state } from "/static/state.js";
 import { setupTokenBadge } from "/static/token-badge.js";
+import { setupGitOverlay, toggleChangedFilter, applyGitColors } from "/static/git-overlay.js";
 
 const board = document.getElementById("board");
 const viewport = document.getElementById("viewport");
@@ -58,6 +59,7 @@ async function load() {
   enforceCap();
   redraw({ initial: true });
   setupControlCenter(tree);
+  setupGitOverlay(board);
   setupPalette(
     tree,
     node => window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } })),
@@ -147,6 +149,10 @@ function redraw({ initial = false } = {}) {
   world.style.width = `${w}px`;
   world.style.height = `${h}px`;
   renderBoard({ nodes, edges }, board, { collapsed, emptyFolders });
+  if (state.mode === "git") {
+    const statusMap = window.__tb_gitStatus || {};
+    applyGitColors(board, statusMap);
+  }
 
   wireInteractions(nodes);
 
@@ -238,11 +244,17 @@ window.addEventListener("keydown", e => {
       w: bounds.maxX - bounds.minX, h: bounds.maxY - bounds.minY,
     }, { padding: 0.1 });
   }
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "G") {
+    e.preventDefault();
+    if (state.mode !== "git") return;
+    toggleChangedFilter(collapsed, redraw);
+    return;
+  }
 });
 
 window.addEventListener("DOMContentLoaded", load);
 
 // expose for other modules (popover, palette, context, live)
-window.__tb = { camera, nodeIndex, redraw, state, get tree() { return tree; } };
+window.__tb = { camera, nodeIndex, redraw, state, collapsed, get tree() { return tree; } };
 
 setupPopovers(viewport);
