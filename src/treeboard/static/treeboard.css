@@ -58,8 +58,8 @@ html, body { margin: 0; padding: 0;
 }
 body {
   background:
-    radial-gradient(1200px 600px at 50% -10%, rgba(182,212,167,.04), transparent 60%),
-    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bot) 100%);
+    radial-gradient(1200px 600px at 50% -10%, var(--grid), transparent 60%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
   min-height: 100vh;
   overflow: hidden;
 }
@@ -1056,7 +1056,7 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
   z-index: 2;
   background: transparent;
 }
-.popover .pop-resize.rh-e  { right: -3px; top: 0; bottom: 12px; width: 6px; cursor: ew-resize; }
+.popover .pop-resize.rh-e  { right: -3px; top: 44px; bottom: 12px; width: 6px; cursor: ew-resize; }
 .popover .pop-resize.rh-s  { left: 0; right: 12px; bottom: -3px; height: 6px; cursor: ns-resize; }
 .popover .pop-resize.rh-se {
   right: 0; bottom: 0; width: 14px; height: 14px;
