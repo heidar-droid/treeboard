@@ -174,7 +174,6 @@ function attachHandlers(h, viewport) {
     const newT = e.clientY - drag.vpT - drag.dy;
     h.pop.style.left = newL + "px";
     h.pop.style.top  = newT + "px";
-    redrawLeader(h, viewport);
   });
   window.addEventListener("mouseup", () => { if (drag) { h.pop.classList.remove("dragging"); drag = null; } });
 }
