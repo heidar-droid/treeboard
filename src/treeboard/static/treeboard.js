@@ -192,6 +192,53 @@ function redraw({ initial = false } = {}) {
   }
 }
 
+function animateExpand(folderPath, beforePaths) {
+  const folder = nodeIndex.get(folderPath);
+  if (!folder) return;
+  const newOnes = [];
+  for (const p of nodeIndex.keys()) {
+    if (!beforePaths.has(p)) newOnes.push(p);
+  }
+  if (newOnes.length === 0) return;
+  newOnes.sort((a, b) => {
+    const na = nodeIndex.get(a), nb = nodeIndex.get(b);
+    return (na.__depth - nb.__depth) || (na.__x - nb.__x);
+  });
+  const baseDepth = folder.__depth || 0;
+  newOnes.forEach((p, i) => {
+    const n = nodeIndex.get(p);
+    const g = board.querySelector(`g[data-path="${CSS.escape(p)}"]`);
+    if (!g) return;
+    const delay = ((n.__depth || 0) - baseDepth) * 70 + i * 18;
+    g.style.animationDelay = `${delay}ms`;
+    g.classList.add("expanding-in");
+    setTimeout(() => {
+      g.classList.remove("expanding-in");
+      g.style.animationDelay = "";
+    }, delay + 480);
+  });
+}
+
+function animateCollapse(folderPath, onDone) {
+  const prefix = folderPath.endsWith("/") ? folderPath : folderPath + "/";
+  const descendants = [];
+  for (const p of nodeIndex.keys()) {
+    if (p !== folderPath && p.startsWith(prefix)) descendants.push(p);
+  }
+  if (descendants.length === 0) { onDone(); return; }
+  descendants.sort((a, b) => {
+    const na = nodeIndex.get(a), nb = nodeIndex.get(b);
+    return (nb.__depth - na.__depth) || (na.__x - nb.__x);
+  });
+  descendants.forEach((p, i) => {
+    const g = board.querySelector(`g[data-path="${CSS.escape(p)}"]`);
+    if (!g) return;
+    g.style.animationDelay = `${i * 8}ms`;
+    g.classList.add("collapsing-out");
+  });
+  setTimeout(onDone, 220);
+}
+
 function applyCascadeDelays(nodes, edges) {
   // group nodes by depth, sort by x, stagger 50ms within depth, 180ms between depths
   const byDepth = new Map();
@@ -226,12 +273,16 @@ function wireInteractions(nodes) {
       e.stopPropagation();
       if (kind === "fold" && collapsed.has(path)) {
         // collapsed folder → expand in place, no camera move
+        const before = new Set(nodeIndex.keys());
         collapsed.delete(path);
         redraw();
+        animateExpand(path, before);
       } else if (kind === "fold") {
         // expanded folder → collapse in place, no camera move
-        collapsed.add(path);
-        redraw();
+        animateCollapse(path, () => {
+          collapsed.add(path);
+          redraw();
+        });
       } else if (kind === "root") {
         // root is informational; do nothing on click
       } else {
