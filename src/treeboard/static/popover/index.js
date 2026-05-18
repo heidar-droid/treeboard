@@ -3,21 +3,7 @@ import { bodyHTML } from "./body.js";
 import { injectNotes } from "./notes.js";
 import { wireDiffTabs } from "./diff.js";
 import { positionPopover } from "./positioning.js";
-
-const ICON_REVEAL = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h5l2 2h5v8H2z"/></svg>`;
-const ICON_X = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 4l8 8M12 4l-8 8"/></svg>`;
-
-const TYPE_LABELS = {
-  text: ext => (ext || ".txt").replace(".", "").toUpperCase(),
-  env: () => "ENV",
-  image: () => "IMG",
-  pdf: () => "PDF",
-  csv: () => "CSV",
-  svg: () => "SVG",
-  binary: () => "BIN",
-  too_large: () => "LARGE",
-  folder: () => "DIR",
-};
+import { renderHeader } from "./chrome.js";
 
 const popovers = []; // up to 2 active
 
@@ -69,7 +55,7 @@ async function openFor(node, viewport) {
 
   if (showDiffTab) {
     pop.innerHTML =
-      headerHTML(node, data) +
+      renderHeader(node, data) +
       titleHTML(node, data) +
       `<div class="pop-tabs">
          <div class="pop-tab active" data-tab="preview">PREVIEW</div>
@@ -77,7 +63,7 @@ async function openFor(node, viewport) {
        </div>` +
       `<div class="pop-body" data-active-tab="preview">${bodyContent}</div>`;
   } else {
-    pop.innerHTML = headerHTML(node, data) + titleHTML(node, data) + `<div class="pop-body">${bodyContent}</div>`;
+    pop.innerHTML = renderHeader(node, data) + titleHTML(node, data) + `<div class="pop-body">${bodyContent}</div>`;
   }
   viewport.appendChild(pop);
   injectNotes(pop, node);  // async — non-blocking
@@ -105,19 +91,6 @@ function closePopover(h) {
   setTimeout(() => h.pop.remove(), 360);
 }
 
-function headerHTML(node, data) {
-  const kind = node.kind === "dir" ? "folder" : data.kind;
-  const label = TYPE_LABELS[kind] ? TYPE_LABELS[kind](data.ext) : kind.toUpperCase();
-  return `<div class="pop-header">
-    <div class="grip"></div>
-    <span class="type">.${label}</span>
-    <span class="path">${node.path}</span>
-    <div class="actions">
-      <button class="ico js-reveal" title="Reveal in Finder">${ICON_REVEAL}</button>
-      <button class="ico js-close" title="Close (Esc)">${ICON_X}</button>
-    </div>
-  </div>`;
-}
 
 function titleHTML(node, data) {
   const metaBits = [];
@@ -133,9 +106,8 @@ function titleHTML(node, data) {
 
 function attachHandlers(h, viewport) {
   h.pop.querySelector(".js-close").addEventListener("click", e => { e.stopPropagation(); closePopover(h); });
-  h.pop.querySelector(".js-reveal").addEventListener("click", async e => {
-    e.stopPropagation();
-    await fetch("/api/reveal", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ path: h.node.path }) });
+  h.pop.querySelector(".js-cycle")?.addEventListener("click", () => {
+    // Wired in Task 9
   });
 
   // .env reveal
