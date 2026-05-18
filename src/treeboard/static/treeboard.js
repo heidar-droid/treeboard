@@ -16,6 +16,7 @@ import { setupContentSearch } from "/static/search-content.js";
 import { setupBookmarks, syncBookmarkHighlights } from "/static/bookmarks.js";
 import { setupMinimap, redrawMinimap } from "/static/minimap.js";
 import { setupProjectTabs } from "/static/project-tabs.js";
+import { initTheme, mountThemeToggle } from "/static/popover/theme.js";
 
 const board = document.getElementById("board");
 const viewport = document.getElementById("viewport");
@@ -327,7 +328,11 @@ window.addEventListener("keydown", e => {
   }
 });
 
-window.addEventListener("DOMContentLoaded", load);
+window.addEventListener("DOMContentLoaded", () => {
+  initTheme();
+  mountThemeToggle(document.body);
+  load();
+});
 
 // expose for other modules (popover, palette, context, live)
 window.__tb = { camera, nodeIndex, redraw, state, collapsed, viewBoxOffset: { x: 0, y: 0 }, get tree() { return tree; } };
