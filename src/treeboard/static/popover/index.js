@@ -112,6 +112,8 @@ function attachHandlers(h, viewport) {
   h.pop.querySelector(".js-close").addEventListener("click", e => { e.stopPropagation(); closePopover(h); });
   h.pop.querySelector(".js-cycle")?.addEventListener("click", () => {
     const current = h.pop.dataset.state || "compact";
+    h.pop.style.width = "";
+    h.pop.style.height = "";
     h.pop.dataset.state = nextState(current);
   });
 
