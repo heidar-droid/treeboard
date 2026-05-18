@@ -47,7 +47,7 @@ async function openFor(node, viewport) {
 
   const pop = document.createElement("div");
   pop.className = "popover";
-  pop.dataset.state = "standard"; // opening default — resize via corner drag
+  pop.dataset.state = "full"; // opening default — drag the corner to shrink
   const inGitMode = window.__tb?.state?.mode === "git";
   const gitSt = inGitMode ? (_gitStatus()[relPath(node.path)] || null) : null;
   const hasDiff = gitSt === "modified" || gitSt === "deleted" || gitSt === "renamed";
