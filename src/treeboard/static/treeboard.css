@@ -743,17 +743,17 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
 }
 .node:hover .pill-star {
   opacity: 1;
-  pointer-events: auto;
+  pointer-events: bounding-box;
 }
 .node[data-bookmarked] .pill-star {
   fill: var(--sage);
   opacity: 1;
-  pointer-events: auto;
+  pointer-events: bounding-box;
 }
 .node[data-bookmarked] .pill {
-  stroke: var(--sage) !important;
-  stroke-width: 1.6 !important;
-  fill: rgba(182,212,167,.06) !important;
+  stroke: var(--sage);
+  stroke-width: 1.6;
+  fill: rgba(182,212,167,.06);
 }
 
 /* ── Pin bar bookmark chips ──────────────────────────────── */
@@ -765,7 +765,7 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
 }
 .pin-bookmark-chip {
   background: rgba(182,212,167,.08);
-  border-color: rgba(182,212,167,.3);
+  border: 1px solid rgba(182,212,167,.3);
 }
 
 /* ── Popover notes ───────────────────────────────────────── */
