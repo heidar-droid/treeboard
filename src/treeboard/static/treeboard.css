@@ -726,3 +726,105 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
 
 /* Dim non-matching pills */
 .node[data-search-dim] { opacity: .2; }
+
+/* ============================================================
+   CHUNK F — Bookmarks, Notes, Saved Views, Snapshot
+   ============================================================ */
+
+/* ── Bookmark star on pill ───────────────────────────────── */
+.pill-star {
+  font-size: 7px;
+  fill: var(--file-lbl);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease, fill .15s ease;
+  user-select: none;
+}
+.node:hover .pill-star {
+  opacity: 1;
+  pointer-events: auto;
+}
+.node[data-bookmarked] .pill-star {
+  fill: var(--sage);
+  opacity: 1;
+  pointer-events: auto;
+}
+.node[data-bookmarked] .pill {
+  stroke: var(--sage) !important;
+  stroke-width: 1.6 !important;
+  fill: rgba(182,212,167,.06) !important;
+}
+
+/* ── Pin bar bookmark chips ──────────────────────────────── */
+.pin-bm-sep {
+  color: rgba(182,212,167,.25);
+  font: 400 10px 'Geist Mono', monospace;
+  padding: 0 2px;
+  align-self: center;
+}
+.pin-bookmark-chip {
+  background: rgba(182,212,167,.08);
+  border-color: rgba(182,212,167,.3);
+}
+
+/* ── Popover notes ───────────────────────────────────────── */
+.pop-notes {
+  padding: 10px 16px 14px;
+  border-top: 1px solid rgba(182,212,167,.1);
+  flex-shrink: 0;
+}
+.pop-notes-label {
+  font: 400 9px 'Geist Mono', monospace;
+  color: var(--file-lbl);
+  letter-spacing: .1em;
+  margin-bottom: 6px;
+}
+.pop-notes-input {
+  width: 100%;
+  min-height: 54px;
+  max-height: 120px;
+  background: rgba(182,212,167,.04);
+  border: 1px solid rgba(182,212,167,.14);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font: 400 11px 'Geist Mono', monospace;
+  color: var(--sage);
+  resize: vertical;
+  outline: none;
+  transition: border-color .2s ease;
+  box-sizing: border-box;
+}
+.pop-notes-input:focus {
+  border-color: rgba(182,212,167,.35);
+}
+.pop-notes-input::placeholder { color: var(--file-lbl); }
+
+/* ── Palette view actions ────────────────────────────────── */
+.action-badge {
+  font: 400 8px 'Geist Mono', monospace;
+  letter-spacing: .1em;
+  color: var(--file-lbl);
+  background: rgba(182,212,167,.08);
+  border: 1px solid rgba(182,212,167,.15);
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-left: auto;
+}
+
+/* ── Snapshot camera flash ───────────────────────────────── */
+.cc-snap-flash {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 9999;
+}
+.cc-snap-flash.flash {
+  animation: snap-flash .5s cubic-bezier(.2,.7,.2,1) forwards;
+}
+@keyframes snap-flash {
+  0%   { opacity: .85; }
+  100% { opacity: 0; }
+}
