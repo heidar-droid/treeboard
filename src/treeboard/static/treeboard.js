@@ -193,6 +193,19 @@ function redraw({ initial = false } = {}) {
   }
 }
 
+function anchorCameraToFolder(folderPath, beforeRect) {
+  // Keep the clicked folder at the same screen position by panning the camera
+  // by however much the folder's DOM rect shifted after layout reflow.
+  const newG = board.querySelector(`g[data-path="${CSS.escape(folderPath)}"]`);
+  if (!newG) return;
+  const afterRect = newG.getBoundingClientRect();
+  const dx = beforeRect.left - afterRect.left;
+  const dy = beforeRect.top - afterRect.top;
+  if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+  const cam = camera.get();
+  camera.animateTo({ x: cam.x + dx, y: cam.y + dy, k: cam.k }, 320);
+}
+
 function animateExpand(folderPath, beforePaths) {
   const folder = nodeIndex.get(folderPath);
   if (!folder) return;
@@ -273,16 +286,20 @@ function wireInteractions(nodes) {
     g.addEventListener("click", e => {
       e.stopPropagation();
       if (kind === "fold" && collapsed.has(path)) {
-        // collapsed folder → expand in place, no camera move
-        const before = new Set(nodeIndex.keys());
+        // collapsed folder → expand; anchor camera so this folder stays put
+        const beforeRect = g.getBoundingClientRect();
+        const beforePaths = new Set(nodeIndex.keys());
         collapsed.delete(path);
         redraw();
-        animateExpand(path, before);
+        anchorCameraToFolder(path, beforeRect);
+        animateExpand(path, beforePaths);
       } else if (kind === "fold") {
-        // expanded folder → collapse in place, no camera move
+        // expanded folder → collapse; anchor camera so this folder stays put
+        const beforeRect = g.getBoundingClientRect();
         animateCollapse(path, () => {
           collapsed.add(path);
           redraw();
+          anchorCameraToFolder(path, beforeRect);
         });
       } else if (kind === "root") {
         // root is informational; do nothing on click

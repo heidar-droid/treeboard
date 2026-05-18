@@ -1,9 +1,14 @@
+// Chrome-style project tabs.
+// Each tab is a treeboard instance (separate process / port) bookmarked in localStorage.
+// + opens a native folder picker via /api/spawn-project, which spawns a fresh treeboard
+// process on a free port and returns the URL. The new tab is added and focused.
+
 const LS_KEY = "treeboard:tabs";
 
 export function setupProjectTabs() {
   _render();
 
-  // Auto-register current session after tree loads
+  // Auto-register current session after tree loads (so the tab for THIS instance exists)
   setTimeout(() => {
     const url = _currentUrl();
     const tabs = _load();
@@ -12,7 +17,7 @@ export function setupProjectTabs() {
       _save([...tabs, { name, url }]);
       _render();
     }
-  }, 2200);
+  }, 1800);
 }
 
 function _currentUrl() {
@@ -40,17 +45,17 @@ function _render() {
   const tabs = _load();
 
   bar.innerHTML = tabs.map(t => `
-    <div class="proj-tab${t.url === cur ? " active" : ""}" data-url="${_esc(t.url)}" tabindex="0">
+    <div class="proj-tab${t.url === cur ? " active" : ""}" data-url="${_esc(t.url)}" tabindex="0" title="${_esc(t.url)}">
       <span class="proj-tab-name">${_esc(t.name)}</span>
-      ${t.url !== cur ? `<button class="proj-tab-x" data-url="${_esc(t.url)}" title="Remove">&times;</button>` : ""}
+      <button class="proj-tab-x" data-url="${_esc(t.url)}" title="Close tab">&times;</button>
     </div>`).join("") +
-    `<div class="proj-tab proj-tab-add" id="proj-tab-add" title="Add project">+</div>`;
+    `<button class="proj-tab-add" id="proj-tab-add" title="Open a folder in a new tab">+</button>`;
 
-  bar.querySelectorAll(".proj-tab:not(.proj-tab-add)").forEach(el => {
+  bar.querySelectorAll(".proj-tab").forEach(el => {
     const url = el.dataset.url;
-    if (url === cur) return;
     el.addEventListener("click", e => {
-      if (e.target.classList.contains("proj-tab-x")) return;
+      if (e.target.closest(".proj-tab-x")) return;
+      if (url === cur) return;
       window.location.href = url;
     });
   });
@@ -59,22 +64,54 @@ function _render() {
     el.addEventListener("click", e => {
       e.stopPropagation();
       const url = el.dataset.url;
-      _save(_load().filter(t => t.url !== url));
+      const filtered = _load().filter(t => t.url !== url);
+      _save(filtered);
+      // If closing the active tab, navigate to the next one (or origin)
+      if (url === cur && filtered.length) {
+        window.location.href = filtered[filtered.length - 1].url;
+        return;
+      }
       _render();
     });
   });
 
-  document.getElementById("proj-tab-add")?.addEventListener("click", () => {
-    const url = prompt("Project URL (e.g. http://localhost:4567):");
-    if (!url?.trim()) return;
-    const name = prompt("Project name:") || url.split(":").pop() || "Project";
-    const clean = url.trim().replace(/\/$/, "");
-    const tabs = _load();
-    if (!tabs.find(t => t.url === clean)) {
-      _save([...tabs, { name: name.trim(), url: clean }]);
-      _render();
+  document.getElementById("proj-tab-add")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    if (btn.classList.contains("busy")) return;
+    btn.classList.add("busy");
+    try {
+      const r = await fetch("/api/spawn-project", { method: "POST" });
+      const data = await r.json();
+      if (!data.ok) {
+        // Cancelled by user — no-op
+        return;
+      }
+      const tabs = _load();
+      if (!tabs.find(t => t.url === data.url)) {
+        _save([...tabs, { name: data.name, url: data.url }]);
+      }
+      // Wait a beat for the spawned server to come up, then navigate
+      await _waitForServer(data.url, 5000);
+      window.location.href = data.url;
+    } catch (err) {
+      console.error("spawn-project failed", err);
+      alert("Could not open folder: " + (err.message || err));
+    } finally {
+      btn.classList.remove("busy");
     }
   });
+}
+
+async function _waitForServer(url, timeoutMs) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const r = await fetch(url + "/api/tree", { method: "GET" });
+      if (r.ok) return true;
+    } catch (_) { /* not ready yet */ }
+    await new Promise(res => setTimeout(res, 200));
+  }
+  return false;
 }
 
 function _esc(s) {

@@ -4,7 +4,6 @@ import { injectNotes } from "./notes.js";
 import { wireDiffTabs } from "./diff.js";
 import { positionPopover } from "./positioning.js";
 import { renderHeader } from "./chrome.js";
-import { nextState } from "./sizes.js";
 import { attachResize } from "./resize.js";
 
 const popovers = []; // up to 2 active
@@ -48,7 +47,7 @@ async function openFor(node, viewport) {
 
   const pop = document.createElement("div");
   pop.className = "popover";
-  pop.dataset.state = "compact"; // opening default
+  pop.dataset.state = "standard"; // opening default — resize via corner drag
   const inGitMode = window.__tb?.state?.mode === "git";
   const gitSt = inGitMode ? (_gitStatus()[relPath(node.path)] || null) : null;
   const hasDiff = gitSt === "modified" || gitSt === "deleted" || gitSt === "renamed";
@@ -110,12 +109,6 @@ function titleHTML(node, data) {
 
 function attachHandlers(h, viewport) {
   h.pop.querySelector(".js-close").addEventListener("click", e => { e.stopPropagation(); closePopover(h); });
-  h.pop.querySelector(".js-cycle")?.addEventListener("click", () => {
-    const current = h.pop.dataset.state || "compact";
-    h.pop.style.width = "";
-    h.pop.style.height = "";
-    h.pop.dataset.state = nextState(current);
-  });
 
   // .env reveal
   h.pop.querySelectorAll(".env-reveal").forEach(btn => {

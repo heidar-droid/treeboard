@@ -43,6 +43,14 @@
   --grid: rgba(31,42,35,.05);
   --selection: rgba(63,107,52,.18);
   --resize-handle: rgba(31,42,35,.3);
+  /* Light overrides for legacy named vars so the rest of the stylesheet stays readable */
+  --bg-top: #f6f4ee;
+  --bg-bot: #e9e7dd;
+  --dim: #6c7768;
+  --sage: #3f6b34;
+  --sage-glow: rgba(63,107,52,.45);
+  --folder-lbl: #2e3a30;
+  --file-lbl: #6c7768;
 }
 
 html, body { background: var(--bg); color: var(--ink); }
@@ -96,7 +104,7 @@ body::before {
 .lbl.file-lbl { fill: var(--file-lbl); font-weight: 400; font-size: 9px; }
 .node.hovered .pill { transform: scale(1.07); stroke-width: 2; }
 .node.hovered .pill.fold-stroke, .node.hovered .pill.file-stroke { stroke: var(--sage); }
-.node.hovered .fold-lbl { fill: #e6efde; }
+.node.hovered .fold-lbl { fill: var(--ink); }
 .node.hovered .file-lbl { fill: var(--folder-lbl); }
 
 /* edges — pulse limited via .pulsing class to avoid hundreds of concurrent animations */
@@ -210,7 +218,7 @@ body::before {
 .pop-header .ico svg { width: 12px; height: 12px; }
 .pop-title { padding: 14px 18px 8px; border-bottom: 1px solid rgba(182,212,167,.08); }
 .pop-title h2 { margin: 0; font-family: 'Fraunces', serif; font-weight: 500;
-  font-size: 18px; letter-spacing: -.01em; color: #e6efde; }
+  font-size: 18px; letter-spacing: -.01em; color: var(--ink); }
 .pop-title .meta { margin-top: 6px; font: 400 10px 'Geist Mono', monospace;
   color: var(--file-lbl); letter-spacing: .04em; }
 .pop-title .meta span + span::before { content: " · "; color: var(--line-2); margin: 0 6px; }
@@ -223,15 +231,15 @@ body::before {
 /* markdown */
 .md { color: var(--folder-lbl); font-family: 'Fraunces', serif; font-size: 13px;
   line-height: 1.65; }
-.md h1, .md h2 { font-family: 'Fraunces', serif; font-weight: 500; color: #e6efde;
+.md h1, .md h2 { font-family: 'Fraunces', serif; font-weight: 500; color: var(--ink);
   letter-spacing: -.015em; }
 .md h1 { font-size: 20px; margin: 0 0 12px; }
 .md h2 { font-size: 16px; margin: 18px 0 8px; }
 .md h3 { font-family: 'Geist Mono', monospace; font-weight: 600; font-size: 10.5px;
   letter-spacing: .2em; text-transform: uppercase; color: var(--sage); margin: 16px 0 6px; }
 .md p { margin: 0 0 10px; }
-.md em { font-style: italic; color: #e6efde; }
-.md strong { font-weight: 600; color: #e6efde; }
+.md em { font-style: italic; color: var(--ink); }
+.md strong { font-weight: 600; color: var(--ink); }
 .md a { color: var(--sage); }
 .md code { font-family: 'JetBrains Mono', monospace; font-size: 11.5px;
   background: rgba(182,212,167,.08); color: var(--sage); padding: 1px 5px; border-radius: 3px; }
@@ -432,19 +440,20 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
 
 /* Quick icon buttons */
 .cc-icon {
-  width: 28px; height: 28px;
+  width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 50%; font-size: 13px;
+  border-radius: 50%; font-size: 17px;
   color: var(--file-lbl); cursor: pointer;
-  transition: color .15s, background .15s;
+  transition: color .15s, background .15s, transform .15s;
 }
-.cc-icon:hover { color: var(--sage); background: rgba(182,212,167,.08); }
+.cc-icon:hover { color: var(--sage); background: rgba(182,212,167,.08); transform: scale(1.06); }
 .cc-icon.active { color: var(--sage); }
+.cc-icon svg { width: 18px; height: 18px; }
 
 /* ── Pin bar ─────────────────────────────────────────────── */
 .pin-bar {
   position: fixed;
-  top: 28px;
+  top: 38px;
   left: 50%;
   transform: translateX(-50%) translateY(-8px);
   z-index: 99;
@@ -705,7 +714,7 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
   stroke-width: 1.8 !important;
   filter: url(#sageGlow);
 }
-.node[data-heat-level="0"] .lbl { fill: #e6efde !important; }
+.node[data-heat-level="0"] .lbl { fill: var(--ink) !important; }
 .node[data-heat-level="0"] { animation: heat-pulse 2.5s ease-in-out infinite; }
 @keyframes heat-pulse {
   0%, 100% { opacity: 1; }
@@ -946,24 +955,22 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
   border-color: rgba(182,212,167,.35);
 }
 
-/* ── Project tabs ────────────────────────────────────────── */
+/* ── Project tabs (Chrome-style) ─────────────────────────── */
 .project-tab-bar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 28px;
+  height: 38px;
   display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 0 12px;
-  background: rgba(6,12,9,.88);
-  backdrop-filter: blur(16px) saturate(1.1);
-  -webkit-backdrop-filter: blur(16px) saturate(1.1);
-  border-bottom: 1px solid rgba(182,212,167,.1);
+  align-items: flex-end;
+  gap: 0;
+  padding: 0 8px 0 8px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
   z-index: 102;
   opacity: 0;
-  transform: translateY(-28px);
+  transform: translateY(-38px);
   transition: opacity .25s ease, transform .3s cubic-bezier(.2,.7,.2,1.05);
   overflow-x: auto;
   scrollbar-width: none;
@@ -975,61 +982,94 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
 }
 
 .proj-tab {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 0 10px;
-  height: 22px;
-  border-radius: 5px;
+  gap: 8px;
+  padding: 0 14px 0 16px;
+  height: 32px;
+  min-width: 120px;
+  max-width: 220px;
+  margin-right: 1px;
+  border-radius: 10px 10px 0 0;
   cursor: pointer;
   white-space: nowrap;
-  font: 400 9.5px 'Geist Mono', monospace;
-  letter-spacing: .05em;
-  color: var(--file-lbl);
-  border: 1px solid transparent;
-  transition: color .15s ease, background .15s ease, border-color .15s ease;
+  font: 500 11px 'Geist Mono', monospace;
+  letter-spacing: .03em;
+  color: var(--ink-muted);
+  background: transparent;
+  transition: background .15s ease, color .15s ease;
   flex-shrink: 0;
   user-select: none;
 }
+.proj-tab .proj-tab-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .proj-tab:hover {
-  color: var(--sage);
-  background: rgba(182,212,167,.07);
+  color: var(--ink);
+  background: color-mix(in oklab, var(--bg) 60%, transparent);
 }
 .proj-tab.active {
-  color: var(--sage);
-  background: rgba(182,212,167,.1);
-  border-color: rgba(182,212,167,.2);
+  color: var(--ink);
+  background: var(--bg);
   cursor: default;
+  box-shadow: 1px 0 0 var(--line), -1px 0 0 var(--line), 0 -1px 0 var(--line);
+}
+.proj-tab.active::after {
+  /* hide the tab-bar bottom border under the active tab */
+  content: "";
+  position: absolute;
+  bottom: -1px; left: 0; right: 0; height: 1px;
+  background: var(--bg);
 }
 .proj-tab-x {
   appearance: none;
   background: none;
   border: none;
   padding: 0;
+  width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
   cursor: pointer;
-  color: var(--file-lbl);
-  font-size: 11px;
+  color: var(--ink-muted);
+  font-size: 14px;
   line-height: 1;
+  border-radius: 4px;
   opacity: 0;
-  transition: opacity .1s ease, color .1s ease;
+  transition: opacity .12s ease, color .1s ease, background .1s ease;
 }
-.proj-tab:hover .proj-tab-x { opacity: 1; }
-.proj-tab-x:hover { color: rgba(239,68,68,.8); }
+.proj-tab:hover .proj-tab-x,
+.proj-tab.active .proj-tab-x { opacity: 1; }
+.proj-tab-x:hover { background: var(--line); color: var(--ink); }
 
 .proj-tab-add {
-  font-size: 13px;
-  padding: 0 8px;
-  color: var(--file-lbl);
-  margin-left: 4px;
+  height: 28px; width: 28px;
+  margin-left: 4px; margin-bottom: 2px;
+  font-size: 18px; font-weight: 400;
+  line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 0;
+  min-width: auto;
+  max-width: none;
 }
-.proj-tab-add:hover { color: var(--sage); }
+.proj-tab-add:hover {
+  color: var(--ink);
+  background: color-mix(in oklab, var(--bg) 70%, transparent);
+}
+.proj-tab-add.busy { opacity: .55; cursor: progress; }
 
-/* Push canvas viewport below the tab bar */
-.viewport { top: 28px; }
+/* Push canvas viewport below the taller tab bar */
+.viewport { top: 38px; }
 
 /* ── Theme toggle ─────────────────────────────────────────── */
 .theme-toggle {
-  position: fixed; top: 40px; right: 14px;
+  position: fixed; top: 50px; right: 14px;
   z-index: 30;
   width: 26px; height: 26px;
   border-radius: 50%;

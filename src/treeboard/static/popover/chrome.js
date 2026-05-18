@@ -1,9 +1,8 @@
-// Phase 1 chrome: grip · type · path · cycle · close.
-// Pin, minimize, and slot indicator land in Phase 2.
+// Phase 1 chrome: grip · type · path · close.
+// Resize is corner-drag only (see resize.js). Pin/minimize/slot land in Phase 2.
 
 import { escapeHTML } from "./utils.js";
 
-const ICON_CYCLE = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 8l5-5 5 5M3 8h10"/></svg>`;
 const ICON_X = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 4l8 8M12 4l-8 8"/></svg>`;
 
 const TYPE_LABELS = {
@@ -26,7 +25,6 @@ export function renderHeader(node, data) {
     <span class="type">.${label}</span>
     <span class="path">${escapeHTML(node.path)}</span>
     <div class="actions">
-      <button class="ico js-cycle" title="Cycle size (compact → standard → expanded → full)">${ICON_CYCLE}</button>
       <button class="ico js-close" title="Close (Esc)">${ICON_X}</button>
     </div>
   </div>`;

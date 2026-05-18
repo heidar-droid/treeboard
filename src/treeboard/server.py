@@ -125,6 +125,37 @@ def build_app(
         subprocess.run(["open", str(p)], check=False)
         return {"ok": True}
 
+    @app.post("/api/spawn-project")
+    def spawn_project():
+        """Open native folder picker (macOS), spawn a new treeboard process for it.
+
+        Returns the URL of the new instance so the frontend can add it as a tab.
+        """
+        import socket
+        result = subprocess.run(
+            ["osascript", "-e",
+             'try\nset folderPath to POSIX path of (choose folder with prompt "Choose a folder to open in Treeboard")\nreturn folderPath\non error\nreturn ""\nend try'],
+            capture_output=True, text=True, check=False,
+        )
+        chosen = (result.stdout or "").strip().rstrip("/")
+        if not chosen:
+            return {"ok": False, "cancelled": True}
+        folder = pathlib.Path(chosen).expanduser().resolve()
+        if not folder.is_dir():
+            raise HTTPException(400, f"not a directory: {folder}")
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            free_port = s.getsockname()[1]
+        cmd = ["treeboard", str(folder), "--port", str(free_port), "--no-browser"]
+        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        return {
+            "ok": True,
+            "path": str(folder),
+            "name": folder.name,
+            "port": free_port,
+            "url": f"http://127.0.0.1:{free_port}",
+        }
+
     # ── GIT ──────────────────────────────────────────────────────────────────
     @app.get("/api/git/status")
     def get_git_status():
