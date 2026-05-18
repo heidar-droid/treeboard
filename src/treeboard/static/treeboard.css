@@ -551,7 +551,7 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
    ============================================================ */
 
 /* Smooth transitions on pill stroke/fill for git color changes */
-.pill { transition: stroke .3s ease, fill .3s ease, stroke-dasharray .3s ease; }
+.pill { transition: transform .2s, stroke .3s ease, fill .3s ease, stroke-dasharray .3s ease; }
 .lbl  { transition: fill .3s ease; }
 
 /* Git status colors via attribute selectors.
