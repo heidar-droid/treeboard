@@ -11,6 +11,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@1&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/treeboard.css">
   <link rel="stylesheet" href="/static/vendor/tokyo-night-storm.css">
+  <script>
+    (function(){
+      var k="treeboard:theme",s=localStorage.getItem(k);
+      if(s==="light"||s==="dark"){document.documentElement.dataset.theme=s;return;}
+      if(matchMedia("(prefers-color-scheme: light)").matches)document.documentElement.dataset.theme="light";
+    })();
+  </script>
 </head>
 <body>
   <div id="app">

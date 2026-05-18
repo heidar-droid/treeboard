@@ -21,16 +21,16 @@ export function mountThemeToggle(parent) {
   btn.className = "theme-toggle";
   btn.type = "button";
   btn.setAttribute("aria-label", "Toggle theme");
-  const render = () => {
-    const t = getTheme();
+  const render = (t) => {
     btn.textContent = t === "dark" ? "☾" : "☀";
     btn.title = `Switch to ${t === "dark" ? "light" : "dark"} mode`;
   };
   btn.addEventListener("click", () => {
-    setTheme(getTheme() === "dark" ? "light" : "dark");
-    render();
+    const next = getTheme() === "dark" ? "light" : "dark";
+    setTheme(next);
+    render(next);
   });
-  render();
+  render(getTheme());
   parent.appendChild(btn);
   return btn;
 }
