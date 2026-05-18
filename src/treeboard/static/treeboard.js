@@ -13,6 +13,7 @@ import { setupGitOverlay, toggleChangedFilter, applyGitColors } from "/static/gi
 import { setupHeatmap, applyHeatmap, clearHeatmap } from "/static/heatmap.js";
 import { setupGraphOverlay, redrawGraph, clearGraph } from "/static/graph-overlay.js";
 import { setupContentSearch } from "/static/search-content.js";
+import { setupBookmarks, syncBookmarkHighlights } from "/static/bookmarks.js";
 
 const board = document.getElementById("board");
 const viewport = document.getElementById("viewport");
@@ -66,6 +67,7 @@ async function load() {
   setupHeatmap(board);
   setupGraphOverlay(board);
   setupContentSearch();
+  setupBookmarks(board);
   setupPalette(
     tree,
     node => window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } })),
@@ -155,6 +157,7 @@ function redraw({ initial = false } = {}) {
   world.style.width = `${w}px`;
   world.style.height = `${h}px`;
   renderBoard({ nodes, edges }, board, { collapsed, emptyFolders });
+  syncBookmarkHighlights(board);
   if (state.mode === "git") {
     const statusMap = window.__tb_gitStatus || {};
     applyGitColors(board, statusMap);
