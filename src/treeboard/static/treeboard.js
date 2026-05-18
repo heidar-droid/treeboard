@@ -8,6 +8,7 @@ import { setupLiveUpdates } from "/static/live.js";
 import { setupControlCenter } from "/static/control-center.js";
 import { wireMultiselect, syncSelectionHighlight } from "/static/multiselect.js";
 import { state } from "/static/state.js";
+import { setupTokenBadge } from "/static/token-badge.js";
 
 const board = document.getElementById("board");
 const viewport = document.getElementById("viewport");
@@ -218,6 +219,7 @@ function wireInteractions(nodes) {
   });
   wireMultiselect(board, nodeIndex);
   syncSelectionHighlight(board, state.selection);
+  setupTokenBadge(board);
 }
 
 // keyboard
