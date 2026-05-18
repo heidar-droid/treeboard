@@ -69,8 +69,9 @@ function _draw(canvas, board, camera, viewport) {
   const cam = camera.get();
   const vw = viewport.clientWidth;
   const vh = viewport.clientHeight;
-  const visX = (-cam.x / cam.k - vb.x) * scaleX;
-  const visY = (-cam.y / cam.k - vb.y) * scaleY;
+  // Camera is in SVG pixel space; left visible edge = -cam.x / cam.k
+  const visX = (-cam.x / cam.k) * scaleX;
+  const visY = (-cam.y / cam.k) * scaleY;
   const visW = (vw / cam.k) * scaleX;
   const visH = (vh / cam.k) * scaleY;
 

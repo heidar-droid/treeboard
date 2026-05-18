@@ -288,7 +288,7 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
   transition: bottom .55s cubic-bezier(.2,.7,.2,1.05);
   user-select: none;
 }
-.cc-bar.visible { bottom: 16px; }
+.cc-bar.visible { bottom: 24px; }
 
 .cc-sep {
   width: 1px; height: 20px;
@@ -374,23 +374,29 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
 /* ── Pin bar ─────────────────────────────────────────────── */
 .pin-bar {
   position: fixed;
-  bottom: -140px;
+  top: 28px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(-8px);
   z-index: 99;
   display: flex; align-items: center; gap: 8px;
-  padding: 7px 16px;
-  background: rgba(6,12,9,.8);
+  padding: 5px 14px;
+  background: rgba(6,12,9,.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255,255,255,.06);
-  border-radius: 24px;
+  border-radius: 0 0 16px 16px;
   font: 400 10.5px 'Geist Mono', monospace;
   color: var(--file-lbl);
   white-space: nowrap;
-  transition: bottom .55s cubic-bezier(.2,.7,.2,1.05) .12s;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .4s ease .15s, transform .4s cubic-bezier(.2,.7,.2,1.05) .15s;
 }
-.pin-bar.visible { bottom: 76px; }
+.pin-bar.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
 
 .pin-label {
   font-size: 9px; text-transform: uppercase; letter-spacing: .1em;
@@ -849,7 +855,7 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
 /* ── Minimap ─────────────────────────────────────────────── */
 .minimap-canvas {
   position: fixed;
-  bottom: 120px;
+  bottom: 80px;
   right: 20px;
   width: 120px;
   height: 80px;
