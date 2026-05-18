@@ -254,7 +254,8 @@ async function _takeSnapshot() {
     });
     if (!r.ok) { showToast("Snapshot failed"); return; }
     const d = await r.json();
-    showToast(`Snapshot — ${d.files.length} file${d.files.length > 1 ? "s" : ""} saved`);
+    const count = Array.isArray(d.files) ? d.files.length : 0;
+    showToast(`Snapshot — ${count} file${count !== 1 ? "s" : ""} saved`);
   } catch {
     showToast("Snapshot failed");
   }
