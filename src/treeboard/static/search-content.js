@@ -24,6 +24,7 @@ function _openSearch() {
     _searchBar = document.createElement("div");
     _searchBar.className = "search-bar-overlay";
     _searchBar.innerHTML = `
+      <div class="search-bar-grip" title="Drag to move"></div>
       <input class="search-bar-input" placeholder="Search file contents..." autocomplete="off" spellcheck="false" />
       <span class="search-bar-count" id="search-bar-count"></span>
     `;
@@ -37,11 +38,41 @@ function _openSearch() {
     input.addEventListener("keydown", e => {
       if (e.key === "Escape") { e.preventDefault(); _closeSearch(); }
     });
+
+    // Drag to reposition
+    _wireDrag(_searchBar);
   }
 
   requestAnimationFrame(() => {
     _searchBar.classList.add("visible");
     _searchBar.querySelector(".search-bar-input")?.focus();
+  });
+}
+
+function _wireDrag(bar) {
+  const grip = bar.querySelector(".search-bar-grip");
+  if (!grip) return;
+  let drag = null;
+
+  grip.addEventListener("mousedown", e => {
+    e.preventDefault();
+    const rect = bar.getBoundingClientRect();
+    drag = { dx: e.clientX - rect.left, dy: e.clientY - rect.top };
+    bar.classList.add("dragging");
+  });
+
+  window.addEventListener("mousemove", e => {
+    if (!drag) return;
+    const x = Math.max(0, Math.min(window.innerWidth - bar.offsetWidth, e.clientX - drag.dx));
+    const y = Math.max(28, Math.min(window.innerHeight - bar.offsetHeight - 8, e.clientY - drag.dy));
+    bar.style.left = x + "px";
+    bar.style.top = y + "px";
+    bar.style.bottom = "auto";
+    bar.style.transform = "none";
+  });
+
+  window.addEventListener("mouseup", () => {
+    if (drag) { drag = null; bar.classList.remove("dragging"); }
   });
 }
 
