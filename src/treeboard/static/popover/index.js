@@ -5,6 +5,7 @@ import { wireDiffTabs } from "./diff.js";
 import { positionPopover } from "./positioning.js";
 import { renderHeader } from "./chrome.js";
 import { nextState } from "./sizes.js";
+import { attachResize } from "./resize.js";
 
 const popovers = []; // up to 2 active
 
@@ -75,6 +76,7 @@ async function openFor(node, viewport) {
 
   positionPopover(handle, viewport);
   attachHandlers(handle, viewport);
+  attachResize(pop);
 
   if (showDiffTab) {
     wireDiffTabs(pop, node.path);

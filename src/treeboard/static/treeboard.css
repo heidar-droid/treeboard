@@ -1048,3 +1048,19 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
 /* Cycle button — rotate arrow on hover */
 .popover .pop-header .actions .ico.js-cycle svg { transform: rotate(0deg); transition: transform 200ms ease; }
 .popover .pop-header .actions .ico.js-cycle:hover svg { transform: rotate(90deg); }
+
+/* ── Resize handles ──────────────────────────────────────── */
+.popover[data-state="freeform"] { transition: none; }
+.popover .pop-resize {
+  position: absolute;
+  z-index: 2;
+  background: transparent;
+}
+.popover .pop-resize.rh-e  { right: -3px; top: 0; bottom: 12px; width: 6px; cursor: ew-resize; }
+.popover .pop-resize.rh-s  { left: 0; right: 12px; bottom: -3px; height: 6px; cursor: ns-resize; }
+.popover .pop-resize.rh-se {
+  right: 0; bottom: 0; width: 14px; height: 14px;
+  cursor: nwse-resize;
+  background:
+    linear-gradient(135deg, transparent 0 50%, var(--resize-handle) 50% 60%, transparent 60% 70%, var(--resize-handle) 70% 80%, transparent 80%);
+}
