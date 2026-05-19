@@ -1028,3 +1028,792 @@ git commit -m "feat(skill): add Claude Code skill file and pywebview optional de
 ```
 
 ---
+
+## Phase 2: Frontend Rebuild
+
+---
+
+### Task 7: Agent state machine — `agent-state.js`
+
+**Files:**
+- Create: `src/arboviz/static/agent-state.js`
+
+The agent state machine tracks which files are in which agent state and broadcasts updates. All frontend modules subscribe to it — nothing reads agent state directly from the WebSocket.
+
+- [ ] **Step 1: Create `agent-state.js`**
+
+```js
+// src/arboviz/static/agent-state.js
+
+// agentOps: Map<path, "read"|"edit"|"create"|"delete">
+// canvasState: "idle" | "scanning" | "editing" | "frozen"
+
+const _subs = new Set();
+
+export const agentState = {
+  canvasState: "idle",
+  agentOps: new Map(),       // path → latest op
+  timeline: [],              // [{label, ts, footprint}]
+  activeFootprint: null,     // footprint being reviewed (null = live)
+  summaryBar: null,          // {edited, created, deleted, label, duration_s}
+
+  _notify() {
+    for (const fn of _subs) fn(agentState);
+  },
+
+  subscribe(fn) {
+    _subs.add(fn);
+    return () => _subs.delete(fn);
+  },
+
+  handle(event) {
+    const { type, file, label, ts } = event;
+
+    if (type === "snapshot") {
+      this.canvasState = "scanning";
+      this.agentOps = new Map();
+      this.summaryBar = null;
+      this.activeFootprint = null;
+    } else if (type === "read" && file) {
+      if (!this.agentOps.has(file)) {
+        this.agentOps.set(file, "read");
+      }
+    } else if (type === "edit" && file) {
+      this.canvasState = "editing";
+      this.agentOps.set(file, "edit");
+    } else if (type === "create" && file) {
+      this.canvasState = "editing";
+      this.agentOps.set(file, "create");
+    } else if (type === "delete" && file) {
+      this.canvasState = "editing";
+      this.agentOps.set(file, "delete");
+    } else if (type === "task-end") {
+      this.canvasState = "frozen";
+      const footprint = this._buildFootprint();
+      const entry = { label: label || `task ${this.timeline.length + 1}`, ts, footprint };
+      this.timeline.push(entry);
+      this.summaryBar = {
+        label: entry.label,
+        edited: footprint.edited.length,
+        created: footprint.created.length,
+        deleted: footprint.deleted.length,
+      };
+    }
+    this._notify();
+  },
+
+  viewPastTask(index) {
+    const entry = this.timeline[index];
+    if (!entry) return;
+    this.activeFootprint = entry.footprint;
+    this._notify();
+  },
+
+  viewLive() {
+    this.activeFootprint = null;
+    this._notify();
+  },
+
+  _buildFootprint() {
+    const fp = { read: [], edited: [], created: [], deleted: [] };
+    for (const [path, op] of this.agentOps) {
+      if (op === "read") fp.read.push(path);
+      else if (op === "edit") fp.edited.push(path);
+      else if (op === "create") fp.created.push(path);
+      else if (op === "delete") fp.deleted.push(path);
+    }
+    return fp;
+  },
+};
+```
+
+- [ ] **Step 2: Wire to WebSocket in `live.js`**
+
+Replace `src/arboviz/static/live.js` with:
+
+```js
+// src/arboviz/static/live.js
+import { agentState } from "/static/agent-state.js";
+
+export function setupLiveUpdates(onChange) {
+  let ws;
+  let backoff = 1000;
+
+  function connect() {
+    ws = new WebSocket(`ws://${location.host}/ws`);
+
+    ws.addEventListener("open", async () => {
+      backoff = 1000;
+      // Replay buffered agent events on reconnect
+      try {
+        const r = await fetch("/api/buffer");
+        const events = await r.json();
+        for (const evt of events) {
+          if (evt.kind === "agent") agentState.handle(evt);
+        }
+      } catch {}
+    });
+
+    ws.addEventListener("message", e => {
+      try {
+        const evt = JSON.parse(e.data);
+        if (evt.kind === "agent") {
+          agentState.handle(evt);
+        } else {
+          onChange(evt);
+        }
+      } catch {}
+    });
+
+    ws.addEventListener("close", () => {
+      setTimeout(connect, backoff);
+      backoff = Math.min(backoff * 2, 10000);
+    });
+
+    setInterval(() => { try { ws.send("ping"); } catch {} }, 15000);
+  }
+
+  connect();
+  return { get ws() { return ws; } };
+}
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/arboviz/static/agent-state.js src/arboviz/static/live.js
+git commit -m "feat(frontend): add agent state machine and WebSocket reconnection"
+```
+
+---
+
+### Task 8: Pill agent visual states — CSS + apply function
+
+**Files:**
+- Modify: `src/arboviz/static/arboviz.css`
+- Create: `src/arboviz/static/agent-pills.js`
+
+- [ ] **Step 1: Add agent CSS classes to `arboviz.css`**
+
+Append to the end of `src/arboviz/static/arboviz.css`:
+
+```css
+/* ── Agent cockpit states ─────────────────────────────── */
+
+/* Reading — scan beam highlight */
+.pill.agent-read {
+  stroke: #58a6ff66;
+  fill: #0d1b2e;
+}
+
+/* Editing — orange glow */
+.pill.agent-edit {
+  stroke: #f0883e;
+  fill: #1a0f00;
+  filter: drop-shadow(0 0 6px rgba(240, 136, 62, 0.45));
+}
+
+/* Created — green */
+.pill.agent-create {
+  stroke: #3fb950;
+  fill: #0a1f0d;
+  filter: drop-shadow(0 0 6px rgba(63, 185, 80, 0.35));
+}
+
+/* Deleted — red strike */
+.pill.agent-delete {
+  stroke: #f8514966;
+  fill: #1a0808;
+  opacity: 0.55;
+}
+
+/* Dimmed — frozen state, untouched files */
+.pill.agent-dim {
+  opacity: 0.18;
+}
+
+/* Blast radius — dependency ripple neighbour */
+.pill.agent-blast {
+  stroke: #f0883e44;
+  fill: #140800;
+}
+
+/* Labels on agent-state nodes */
+.node.agent-edit .lbl,
+.node.agent-create .lbl { fill: inherit; }
+
+/* Deleted text label — strikethrough via SVG trick */
+.node.agent-delete .lbl {
+  text-decoration: line-through;
+  fill: #f85149;
+}
+
+/* New file ring animation */
+@keyframes agent-ring-expand {
+  0%   { r: 0; opacity: 0.8; stroke-width: 2; }
+  100% { r: 40; opacity: 0; stroke-width: 0.5; }
+}
+.agent-ring {
+  fill: none;
+  stroke: #3fb950;
+  animation: agent-ring-expand 1.5s ease-out forwards;
+  pointer-events: none;
+}
+.agent-ring-2 {
+  fill: none;
+  stroke: #3fb95066;
+  animation: agent-ring-expand 1.5s 0.4s ease-out forwards;
+  pointer-events: none;
+}
+
+/* Delete contraction animation */
+@keyframes agent-ring-contract {
+  0%   { r: 30; opacity: 0.6; }
+  100% { r: 0; opacity: 0; }
+}
+.agent-ring-delete {
+  fill: none;
+  stroke: #f85149;
+  animation: agent-ring-contract 0.8s ease-in forwards;
+  pointer-events: none;
+}
+```
+
+- [ ] **Step 2: Create `agent-pills.js`**
+
+```js
+// src/arboviz/static/agent-pills.js
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/**
+ * Apply agent visual states to all pill nodes in the SVG board.
+ * Called every time agentState changes.
+ */
+export function applyAgentPillStates(board, agentState) {
+  const { canvasState, agentOps, activeFootprint } = agentState;
+
+  // Determine the effective op map (live or past footprint)
+  const effectiveOps = new Map();
+  if (activeFootprint) {
+    for (const p of activeFootprint.read)    effectiveOps.set(p, "read");
+    for (const p of activeFootprint.edited)  effectiveOps.set(p, "edit");
+    for (const p of activeFootprint.created) effectiveOps.set(p, "create");
+    for (const p of activeFootprint.deleted) effectiveOps.set(p, "delete");
+  } else {
+    for (const [p, op] of agentOps) effectiveOps.set(p, op);
+  }
+
+  const isFrozen = canvasState === "frozen" || activeFootprint !== null;
+
+  for (const node of board.querySelectorAll("g.node")) {
+    const path = node.dataset.path;
+    if (!path) continue;
+    const pill = node.querySelector("rect.pill");
+    if (!pill) continue;
+
+    // Strip all agent classes
+    pill.classList.remove(
+      "agent-read", "agent-edit", "agent-create", "agent-delete",
+      "agent-dim", "agent-blast"
+    );
+    node.classList.remove(
+      "agent-read", "agent-edit", "agent-create", "agent-delete",
+      "agent-dim", "agent-blast"
+    );
+
+    const op = effectiveOps.get(path);
+
+    if (op) {
+      pill.classList.add(`agent-${op}`);
+      node.classList.add(`agent-${op}`);
+    } else if (isFrozen && effectiveOps.size > 0) {
+      pill.classList.add("agent-dim");
+      node.classList.add("agent-dim");
+    }
+  }
+}
+
+/**
+ * Animate a newly created file pill with expanding rings.
+ * Call once per create event with the node element.
+ */
+export function animateNewFile(node) {
+  const rect = node.querySelector("rect.pill");
+  if (!rect) return;
+  const cx = parseFloat(rect.getAttribute("x")) + parseFloat(rect.getAttribute("width")) / 2;
+  const cy = parseFloat(rect.getAttribute("y")) + parseFloat(rect.getAttribute("height")) / 2;
+  const svg = node.closest("svg");
+  if (!svg) return;
+
+  for (const cls of ["agent-ring", "agent-ring-2"]) {
+    const circle = document.createElementNS(SVG_NS, "circle");
+    circle.setAttribute("cx", cx);
+    circle.setAttribute("cy", cy);
+    circle.setAttribute("r", 0);
+    circle.setAttribute("class", cls);
+    svg.appendChild(circle);
+    circle.addEventListener("animationend", () => circle.remove());
+  }
+}
+
+/**
+ * Animate a deleted file pill with contracting rings, then remove it.
+ */
+export function animateDeleteFile(node) {
+  const rect = node.querySelector("rect.pill");
+  if (!rect) return;
+  const cx = parseFloat(rect.getAttribute("x")) + parseFloat(rect.getAttribute("width")) / 2;
+  const cy = parseFloat(rect.getAttribute("y")) + parseFloat(rect.getAttribute("height")) / 2;
+  const svg = node.closest("svg");
+  if (!svg) return;
+
+  const circle = document.createElementNS(SVG_NS, "circle");
+  circle.setAttribute("cx", cx);
+  circle.setAttribute("cy", cy);
+  circle.setAttribute("r", 30);
+  circle.setAttribute("class", "agent-ring-delete");
+  svg.appendChild(circle);
+  circle.addEventListener("animationend", () => circle.remove());
+
+  // Fade out the node itself
+  node.style.transition = "opacity 0.8s";
+  node.style.opacity = "0";
+  setTimeout(() => node.remove(), 850);
+}
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/arboviz/static/arboviz.css src/arboviz/static/agent-pills.js
+git commit -m "feat(frontend): add agent pill visual states and create/delete animations"
+```
+
+---
+
+### Task 9: Scan beam layer
+
+**Files:**
+- Create: `src/arboviz/static/scan-beam.js`
+
+- [ ] **Step 1: Create `scan-beam.js`**
+
+```js
+// src/arboviz/static/scan-beam.js
+
+/**
+ * Scan beam: animated blue gradient that sweeps across the viewport
+ * when canvasState === "scanning". Shows Claude reading files.
+ */
+export function setupScanBeam(viewport) {
+  const beam = document.createElement("div");
+  beam.id = "agent-scan-beam";
+  beam.style.cssText = `
+    position: absolute; top: 0; bottom: 0; width: 120px;
+    background: linear-gradient(90deg, transparent, rgba(88,166,255,0.07), transparent);
+    pointer-events: none; z-index: 10;
+    display: none; left: -120px;
+  `;
+  viewport.style.position = "relative";
+  viewport.appendChild(beam);
+
+  let animFrame = null;
+  let startTime = null;
+  const DURATION = 3000; // ms per sweep
+
+  function sweep(ts) {
+    if (!startTime) startTime = ts;
+    const elapsed = (ts - startTime) % DURATION;
+    const pct = elapsed / DURATION;
+    const vpWidth = viewport.offsetWidth;
+    beam.style.left = `${-120 + pct * (vpWidth + 120)}px`;
+    animFrame = requestAnimationFrame(sweep);
+  }
+
+  return {
+    show() {
+      beam.style.display = "block";
+      startTime = null;
+      if (!animFrame) animFrame = requestAnimationFrame(sweep);
+    },
+    hide() {
+      beam.style.display = "none";
+      if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+    },
+    update(canvasState) {
+      canvasState === "scanning" ? this.show() : this.hide();
+    },
+  };
+}
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add src/arboviz/static/scan-beam.js
+git commit -m "feat(frontend): add scan beam animation for reading phase"
+```
+
+---
+
+### Task 10: Dependency ripple overlay
+
+**Files:**
+- Create: `src/arboviz/static/dep-ripple.js`
+
+- [ ] **Step 1: Create `dep-ripple.js`**
+
+```js
+// src/arboviz/static/dep-ripple.js
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+let _graph = {};
+let _active = null;
+
+export async function loadGraph() {
+  try {
+    const r = await fetch("/api/graph");
+    _graph = await r.json();
+  } catch {}
+}
+
+/**
+ * Setup click handler on the board for dependency ripple.
+ * Clicking an agent-edit or agent-dim pill shows blast radius.
+ */
+export function setupDepRipple(board, getCanvasState) {
+  const svg = board.closest("svg") || board.querySelector("svg");
+
+  board.addEventListener("click", e => {
+    const node = e.target.closest("g.node");
+    if (!node) { clearRipple(svg); return; }
+
+    const state = getCanvasState();
+    if (state !== "editing" && state !== "frozen") return;
+
+    const path = node.dataset.path;
+    if (!path) return;
+
+    if (_active === path) { clearRipple(svg); return; }
+    _active = path;
+    clearRipple(svg);
+    drawRipple(svg, board, path);
+  });
+}
+
+function drawRipple(svg, board, sourcePath) {
+  const entry = _graph[sourcePath];
+  if (!entry) return;
+
+  const neighbours = [...(entry.imports || []), ...(entry.imported_by || [])];
+  if (neighbours.length === 0) return;
+
+  const sourceNode = board.querySelector(`g.node[data-path="${CSS.escape(sourcePath)}"]`);
+  if (!sourceNode) return;
+  const sourceRect = sourceNode.querySelector("rect.pill");
+  if (!sourceRect) return;
+
+  const sx = parseFloat(sourceRect.getAttribute("x")) + parseFloat(sourceRect.getAttribute("width")) / 2;
+  const sy = parseFloat(sourceRect.getAttribute("y")) + parseFloat(sourceRect.getAttribute("height")) / 2;
+
+  const rippleGroup = document.createElementNS(SVG_NS, "g");
+  rippleGroup.id = "agent-ripple-layer";
+  svg.appendChild(rippleGroup);
+
+  let connected = 0;
+  for (const neighbourPath of neighbours) {
+    const nNode = board.querySelector(`g.node[data-path="${CSS.escape(neighbourPath)}"]`);
+    if (!nNode) continue;
+    const nRect = nNode.querySelector("rect.pill");
+    if (!nRect) continue;
+
+    const nx = parseFloat(nRect.getAttribute("x")) + parseFloat(nRect.getAttribute("width")) / 2;
+    const ny = parseFloat(nRect.getAttribute("y")) + parseFloat(nRect.getAttribute("height")) / 2;
+
+    const line = document.createElementNS(SVG_NS, "line");
+    line.setAttribute("x1", sx); line.setAttribute("y1", sy);
+    line.setAttribute("x2", nx); line.setAttribute("y2", ny);
+    line.setAttribute("stroke", "#f0883e66");
+    line.setAttribute("stroke-width", "1.5");
+    line.setAttribute("stroke-dasharray", "5 5");
+    line.style.animation = "ripple-dash 1.5s linear infinite";
+    rippleGroup.appendChild(line);
+
+    nRect.classList.add("agent-blast");
+    connected++;
+  }
+
+  // Badge
+  if (connected > 0) {
+    showBlastBadge(connected);
+  }
+}
+
+function clearRipple(svg) {
+  _active = null;
+  document.getElementById("agent-ripple-layer")?.remove();
+  document.getElementById("agent-blast-badge")?.remove();
+  document.querySelectorAll(".pill.agent-blast").forEach(p => p.classList.remove("agent-blast"));
+}
+
+function showBlastBadge(count) {
+  let badge = document.getElementById("agent-blast-badge");
+  if (!badge) {
+    badge = document.createElement("div");
+    badge.id = "agent-blast-badge";
+    badge.style.cssText = `
+      position: fixed; top: 12px; right: 14px; z-index: 100;
+      background: #3d1a00; border: 1px solid #f0883e44;
+      border-radius: 6px; padding: 4px 10px;
+      font-size: 11px; font-family: monospace; color: #f0883e;
+    `;
+    document.body.appendChild(badge);
+  }
+  badge.textContent = `blast radius · ${count} file${count !== 1 ? "s" : ""}`;
+}
+```
+
+Append the dash animation to `arboviz.css`:
+
+```css
+@keyframes ripple-dash {
+  to { stroke-dashoffset: -20; }
+}
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add src/arboviz/static/dep-ripple.js src/arboviz/static/arboviz.css
+git commit -m "feat(frontend): add dependency ripple SVG overlay"
+```
+
+---
+
+### Task 11: Timeline strip
+
+**Files:**
+- Create: `src/arboviz/static/timeline.js`
+
+- [ ] **Step 1: Create `timeline.js`**
+
+```js
+// src/arboviz/static/timeline.js
+
+/**
+ * Session timeline strip — appears at top of viewport in frozen state.
+ * Shows one entry per completed task. Clickable to review past footprints.
+ */
+export function setupTimeline(viewport, agentStateRef) {
+  const strip = document.createElement("div");
+  strip.id = "agent-timeline";
+  strip.style.cssText = `
+    position: absolute; top: 0; left: 0; right: 0; height: 32px;
+    background: rgba(13, 17, 23, 0.92); border-bottom: 1px solid #21262d;
+    display: none; align-items: center; gap: 0;
+    overflow-x: auto; z-index: 20; backdrop-filter: blur(8px);
+    font-family: monospace; font-size: 10px;
+  `;
+  viewport.appendChild(strip);
+
+  // Summary bar
+  const summaryBar = document.createElement("div");
+  summaryBar.id = "agent-summary-bar";
+  summaryBar.style.cssText = `
+    position: absolute; top: 32px; left: 0; right: 0; height: 28px;
+    background: rgba(13, 17, 23, 0.88); border-bottom: 1px solid #21262d;
+    display: none; align-items: center; padding: 0 14px; gap: 14px;
+    z-index: 19; font-family: monospace; font-size: 10px; color: #484f58;
+  `;
+  viewport.appendChild(summaryBar);
+
+  return {
+    update(agentState) {
+      const { canvasState, timeline, summaryBar: sb, activeFootprint } = agentState;
+
+      // Timeline strip: show in frozen state
+      if (canvasState === "frozen" && timeline.length > 0) {
+        strip.style.display = "flex";
+        strip.innerHTML = "";
+        timeline.forEach((entry, i) => {
+          const item = document.createElement("div");
+          const isActive = activeFootprint === null
+            ? i === timeline.length - 1
+            : agentState.timeline.indexOf(agentState.activeFootprint) === i;
+          item.style.cssText = `
+            height: 100%; display: flex; align-items: center; gap: 6px;
+            padding: 0 12px; border-right: 1px solid #21262d; cursor: pointer; white-space: nowrap;
+            color: ${isActive ? "#f0883e" : "#484f58"};
+            background: ${isActive ? "#1a1200" : "transparent"};
+          `;
+          const dot = document.createElement("span");
+          dot.style.cssText = `
+            width: 6px; height: 6px; border-radius: 50%;
+            background: ${isActive ? "#f0883e" : "#30363d"}; flex-shrink: 0;
+          `;
+          item.appendChild(dot);
+          item.appendChild(document.createTextNode(entry.label));
+          item.addEventListener("click", () => {
+            if (i === timeline.length - 1 && activeFootprint === null) return;
+            agentState.viewPastTask(i);
+          });
+          strip.appendChild(item);
+        });
+      } else {
+        strip.style.display = "none";
+      }
+
+      // Summary bar: show in frozen state
+      if (canvasState === "frozen" && sb) {
+        summaryBar.style.display = "flex";
+        summaryBar.innerHTML = "";
+        const parts = [
+          sb.edited   ? `<span style="color:#f0883e">${sb.edited} edited</span>` : null,
+          sb.created  ? `<span style="color:#3fb950">${sb.created} created</span>` : null,
+          sb.deleted  ? `<span style="color:#f85149">${sb.deleted} deleted</span>` : null,
+          `<span style="color:#30363d">${sb.label}</span>`,
+        ].filter(Boolean).join('<span style="color:#21262d"> · </span>');
+        summaryBar.innerHTML = parts;
+      } else {
+        summaryBar.style.display = "none";
+      }
+    },
+  };
+}
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add src/arboviz/static/timeline.js
+git commit -m "feat(frontend): add session timeline strip and summary bar"
+```
+
+---
+
+### Task 12: Window bridge + wire everything in `arboviz.js`
+
+**Files:**
+- Create: `src/arboviz/static/window-bridge.js`
+- Modify: `src/arboviz/static/arboviz.js`
+
+- [ ] **Step 1: Create `window-bridge.js`**
+
+```js
+// src/arboviz/static/window-bridge.js
+
+/**
+ * Sends messages to the PyWebView host when running in native window mode.
+ * Falls back to no-op in browser tab mode.
+ */
+export const windowBridge = {
+  bringToFront() {
+    if (window.pywebview?.api?.bring_to_front) {
+      window.pywebview.api.bring_to_front();
+    }
+  },
+  sendToBack() {
+    if (window.pywebview?.api?.send_to_back) {
+      window.pywebview.api.send_to_back();
+    }
+  },
+};
+```
+
+- [ ] **Step 2: Wire all new agent modules into `arboviz.js`**
+
+Add these imports at the top of `src/arboviz/static/arboviz.js` (after existing imports):
+
+```js
+import { agentState } from "/static/agent-state.js";
+import { applyAgentPillStates, animateNewFile, animateDeleteFile } from "/static/agent-pills.js";
+import { setupScanBeam } from "/static/scan-beam.js";
+import { setupDepRipple, loadGraph } from "/static/dep-ripple.js";
+import { setupTimeline } from "/static/timeline.js";
+import { windowBridge } from "/static/window-bridge.js";
+```
+
+After the existing setup calls (after `setupLiveUpdates`), add:
+
+```js
+// Agent cockpit setup
+const scanBeam = setupScanBeam(viewport);
+const timeline = setupTimeline(viewport, agentState);
+const depRipple = setupDepRipple(board, () => agentState.canvasState);
+loadGraph();
+
+// Track which files were created this render cycle for animation
+const _justCreated = new Set();
+const _justDeleted = new Set();
+
+agentState.subscribe((s) => {
+  // Apply pill visual states
+  applyAgentPillStates(board, s);
+
+  // Scan beam
+  scanBeam.update(s.canvasState);
+
+  // Timeline strip
+  timeline.update(s);
+
+  // Window bridge — bring to front on task start
+  if (s.canvasState === "scanning") windowBridge.bringToFront();
+
+  // Animate newly created files
+  for (const path of _justCreated) {
+    const node = board.querySelector(`g.node[data-path="${CSS.escape(path)}"]`);
+    if (node) animateNewFile(node);
+  }
+  _justCreated.clear();
+
+  // Animate deleted files
+  for (const path of _justDeleted) {
+    const node = board.querySelector(`g.node[data-path="${CSS.escape(path)}"]`);
+    if (node) animateDeleteFile(node);
+  }
+  _justDeleted.clear();
+});
+
+// Track create/delete events before they hit agentState
+// (so we know which nodes to animate after re-render)
+const _origHandle = agentState.handle.bind(agentState);
+agentState.handle = function(evt) {
+  if (evt.type === "create" && evt.file) _justCreated.add(evt.file);
+  if (evt.type === "delete" && evt.file) _justDeleted.add(evt.file);
+  _origHandle(evt);
+};
+```
+
+- [ ] **Step 3: Run arboviz on a local project and verify visually**
+
+```bash
+cd "Personal Projects/treeboard"
+source .venv/bin/activate
+python -m arboviz .
+```
+
+Open browser. Manually POST a sequence of agent events to verify the canvas responds:
+
+```bash
+# In a second terminal
+PORT=$(cat ~/.arboviz/server.lock | python3 -c "import sys,json; print(json.load(sys.stdin)['port'])")
+curl -s -X POST http://127.0.0.1:$PORT/api/event -H "Content-Type: application/json" -d '{"type":"snapshot","ts":0}'
+curl -s -X POST http://127.0.0.1:$PORT/api/event -H "Content-Type: application/json" -d '{"type":"read","file":"src/arboviz/cli.py","ts":1}'
+curl -s -X POST http://127.0.0.1:$PORT/api/event -H "Content-Type: application/json" -d '{"type":"edit","file":"src/arboviz/server.py","ts":2}'
+curl -s -X POST http://127.0.0.1:$PORT/api/event -H "Content-Type: application/json" -d '{"type":"task-end","label":"test task","ts":3}'
+```
+
+Expected:
+- After `snapshot`: canvas enters scanning state, scan beam starts
+- After `read`: cli.py pill turns blue
+- After `edit`: server.py pill turns orange, state → editing
+- After `task-end`: canvas freezes, untouched pills dim, summary bar appears, timeline strip shows "test task"
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/arboviz/static/window-bridge.js src/arboviz/static/arboviz.js
+git commit -m "feat(frontend): wire agent modules into main — scan beam, timeline, dep ripple, animations"
+```
+
+---
