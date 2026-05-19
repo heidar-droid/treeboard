@@ -2,7 +2,7 @@ import { state } from "/static/state.js";
 
 /**
  * Call after each redraw() so new node <g> elements get selection listeners.
- * Attaches in capture phase to intercept before treeboard.js bubble handlers.
+ * Attaches in capture phase to intercept before arboviz.js bubble handlers.
  */
 export function wireMultiselect(board, nodeIndex) {
   board.querySelectorAll(".node").forEach(g => {

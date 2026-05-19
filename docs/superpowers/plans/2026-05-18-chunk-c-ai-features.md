@@ -2,7 +2,7 @@
 
 **Date**: 2026-05-18
 **Goal**: Extend the ⌘K palette with a second "Actions" tab for prompt templates, and add inline token estimate badges on file node hover.
-**Architecture**: Pure client-side. No new API endpoints. Two isolated modules — one extends `palette.js` in place, one is a new singleton `token-badge.js` wired from `treeboard.js`. CSS appended to `treeboard.css`.
+**Architecture**: Pure client-side. No new API endpoints. Two isolated modules — one extends `palette.js` in place, one is a new singleton `token-badge.js` wired from `arboviz.js`. CSS appended to `arboviz.css`.
 **Tech Stack**: Vanilla ES module JS, SVG DOM, `getBoundingClientRect()` for badge positioning, `navigator.clipboard` for copy.
 
 ---
@@ -11,10 +11,10 @@
 
 | Action | File |
 |---|---|
-| Modify | `src/treeboard/static/palette.js` |
-| Create | `src/treeboard/static/token-badge.js` |
-| Modify | `src/treeboard/static/treeboard.js` |
-| Modify | `src/treeboard/static/treeboard.css` |
+| Modify | `src/arboviz/static/palette.js` |
+| Create | `src/arboviz/static/token-badge.js` |
+| Modify | `src/arboviz/static/arboviz.js` |
+| Modify | `src/arboviz/static/arboviz.css` |
 
 ---
 
@@ -26,7 +26,7 @@
 
 **Step 1.1 — Replace the innerHTML scaffold to include tab strip**
 
-Open `src/treeboard/static/palette.js`. Replace the `wrap.innerHTML` line at line 20:
+Open `src/arboviz/static/palette.js`. Replace the `wrap.innerHTML` line at line 20:
 
 ```js
 // BEFORE
@@ -277,9 +277,9 @@ Note: `sel` is already reset to 0 before calling `renderActions` on tab switch a
 
 ---
 
-### Task 2 — Create `src/treeboard/static/token-badge.js`
+### Task 2 — Create `src/arboviz/static/token-badge.js`
 
-Create the file at `src/treeboard/static/token-badge.js` with this full content:
+Create the file at `src/arboviz/static/token-badge.js` with this full content:
 
 ```js
 let _badge = null;
@@ -340,9 +340,9 @@ export function setupTokenBadge(board) {
 
 ---
 
-### Task 3 — Wire `token-badge.js` into `treeboard.js`
+### Task 3 — Wire `token-badge.js` into `arboviz.js`
 
-**Step 3.1 — Add import at top of `treeboard.js`**
+**Step 3.1 — Add import at top of `arboviz.js`**
 
 Add after the last existing import line (line 10: `import { state } from "/static/state.js";`):
 
@@ -439,9 +439,9 @@ export function setupTokenBadge(board) {
 
 ---
 
-### Task 4 — Append CSS to `treeboard.css`
+### Task 4 — Append CSS to `arboviz.css`
 
-Append the following block to the end of `src/treeboard/static/treeboard.css`:
+Append the following block to the end of `src/arboviz/static/arboviz.css`:
 
 ```css
 /* ============================================================
@@ -536,8 +536,8 @@ Append the following block to the end of `src/treeboard/static/treeboard.css`:
 **Step 5.1 — Start the dev server**
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/personal projects/treeboard"
-python3 -m treeboard
+cd "/Users/smb/Infinivo AI Workspace/personal projects/arboviz"
+python3 -m arboviz
 ```
 
 **Step 5.2 — Verify Files tab still works**

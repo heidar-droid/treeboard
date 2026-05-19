@@ -8,7 +8,7 @@ import pathspec
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from treeboard.scan import _load_gitignore
+from arboviz.scan import _load_gitignore
 
 
 class TreeWatcher:

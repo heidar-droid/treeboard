@@ -1,4 +1,4 @@
-const STORAGE_KEY = "treeboard:theme";
+const STORAGE_KEY = "arboviz:theme";
 
 export function getTheme() {
   const stored = localStorage.getItem(STORAGE_KEY);

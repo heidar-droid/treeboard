@@ -1,9 +1,9 @@
 // Chrome-style project tabs.
-// Each tab is a treeboard instance (separate process / port) bookmarked in localStorage.
-// + opens a native folder picker via /api/spawn-project, which spawns a fresh treeboard
+// Each tab is a arboviz instance (separate process / port) bookmarked in localStorage.
+// + opens a native folder picker via /api/spawn-project, which spawns a fresh arboviz
 // process on a free port and returns the URL. The new tab is added and focused.
 
-const LS_KEY = "treeboard:tabs";
+const LS_KEY = "arboviz:tabs";
 
 export function setupProjectTabs() {
   _render();

@@ -1,10 +1,10 @@
-# Treeboard Productization Implementation Plan
+# Arboviz Productization Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Turn the treeboard workspace subfolder into a fully standalone, publicly distributable Python package — live on GitHub and installable via `pip install treeboard` from PyPI.
+**Goal:** Turn the arboviz workspace subfolder into a fully standalone, publicly distributable Python package — live on GitHub and installable via `pip install arboviz` from PyPI.
 
-**Architecture:** Extract the existing `Personal Projects/treeboard/` folder into its own git repo, enrich it with a polished README, MIT LICENSE, CHANGELOG, and two GitHub Actions workflows (CI on every push/PR, PyPI publish on `v*` tags via OIDC Trusted Publisher — no API key required).
+**Architecture:** Extract the existing `Personal Projects/arboviz/` folder into its own git repo, enrich it with a polished README, MIT LICENSE, CHANGELOG, and two GitHub Actions workflows (CI on every push/PR, PyPI publish on `v*` tags via OIDC Trusted Publisher — no API key required).
 
 **Tech Stack:** Python 3.11+, Hatchling (build), PyPI Trusted Publisher (OIDC), GitHub Actions, pytest
 
@@ -29,27 +29,27 @@
 **Files:**
 - Create: `.gitignore`
 
-- [ ] **Step 1: Check if treeboard is already its own git repo**
+- [ ] **Step 1: Check if arboviz is already its own git repo**
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/Personal Projects/treeboard"
+cd "/Users/smb/Infinivo AI Workspace/Personal Projects/arboviz"
 git rev-parse --show-toplevel
 ```
 
-Expected: prints the treeboard path itself. If it prints the parent Infinivo workspace path, proceed with the next step.
+Expected: prints the arboviz path itself. If it prints the parent Infinivo workspace path, proceed with the next step.
 
 - [ ] **Step 2: If it's nested in the parent repo — detach it**
 
-The treeboard folder is currently tracked inside the Infinivo workspace repo. We need to make it its own repo:
+The arboviz folder is currently tracked inside the Infinivo workspace repo. We need to make it its own repo:
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/Personal Projects/treeboard"
+cd "/Users/smb/Infinivo AI Workspace/Personal Projects/arboviz"
 git init
 git add .
-git commit -m "chore: initialize standalone treeboard repo"
+git commit -m "chore: initialize standalone arboviz repo"
 ```
 
-If it's already its own repo (Step 1 returned the treeboard path), skip this step.
+If it's already its own repo (Step 1 returned the arboviz path), skip this step.
 
 - [ ] **Step 3: Create `.gitignore`**
 
@@ -83,7 +83,7 @@ htmlcov/
 - [ ] **Step 4: Commit**
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/Personal Projects/treeboard"
+cd "/Users/smb/Infinivo AI Workspace/Personal Projects/arboviz"
 git add .gitignore
 git commit -m "chore: add .gitignore"
 ```
@@ -143,7 +143,7 @@ Replace the current `[project]` block with:
 
 ```toml
 [project]
-name = "treeboard"
+name = "arboviz"
 version = "0.1.0"
 description = "Cinematic pyramid visualiser for any directory tree."
 readme = "README.md"
@@ -167,9 +167,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/heidar-b/treeboard"
-Repository = "https://github.com/heidar-b/treeboard"
-"Bug Tracker" = "https://github.com/heidar-b/treeboard/issues"
+Homepage = "https://github.com/heidar-b/arboviz"
+Repository = "https://github.com/heidar-b/arboviz"
+"Bug Tracker" = "https://github.com/heidar-b/arboviz/issues"
 ```
 
 Keep all other sections (`[build-system]`, `[project.optional-dependencies]`, `[project.scripts]`, `[tool.hatch.build]`, `[tool.pytest.ini_options]`) exactly as they are.
@@ -193,7 +193,7 @@ git commit -m "chore: enrich pyproject.toml with PyPI metadata"
 ```markdown
 # Changelog
 
-All notable changes to treeboard are documented here.
+All notable changes to arboviz are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.1.0] — 2026-05-17
@@ -229,23 +229,23 @@ git commit -m "docs: add CHANGELOG with 0.1.0 entry"
 - [ ] **Step 1: Replace README.md with the polished version**
 
 ```markdown
-# treeboard
+# arboviz
 
 **Cinematic pyramid visualiser for any directory on disk.**
 
-[![PyPI](https://img.shields.io/pypi/v/treeboard)](https://pypi.org/project/treeboard/)
-[![Python](https://img.shields.io/pypi/pyversions/treeboard)](https://pypi.org/project/treeboard/)
+[![PyPI](https://img.shields.io/pypi/v/arboviz)](https://pypi.org/project/arboviz/)
+[![Python](https://img.shields.io/pypi/pyversions/arboviz)](https://pypi.org/project/arboviz/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/heidar-b/treeboard/actions/workflows/ci.yml/badge.svg)](https://github.com/heidar-b/treeboard/actions/workflows/ci.yml)
+[![CI](https://github.com/heidar-b/arboviz/actions/workflows/ci.yml/badge.svg)](https://github.com/heidar-b/arboviz/actions/workflows/ci.yml)
 
-treeboard scans a folder and opens a browser canvas where every file and directory is a draggable, zoomable pill — with live file preview, fuzzy search, and real-time updates as you edit.
+arboviz scans a folder and opens a browser canvas where every file and directory is a draggable, zoomable pill — with live file preview, fuzzy search, and real-time updates as you edit.
 
 ---
 
 ## Install
 
 ```bash
-pip install treeboard
+pip install arboviz
 ```
 
 Requires Python 3.11+. No other dependencies beyond pip.
@@ -254,16 +254,16 @@ Requires Python 3.11+. No other dependencies beyond pip.
 
 ```bash
 # Visualise the current directory
-treeboard .
+arboviz .
 
 # Visualise any path
-treeboard ~/projects/myapp
+arboviz ~/projects/myapp
 
 # Options
-treeboard ~/myproject --port 9000        # bind to a specific port
-treeboard . --no-gitignore               # disable .gitignore filtering
-treeboard . --include-dotfiles           # show hidden files
-treeboard . --no-browser                 # start server without opening browser
+arboviz ~/myproject --port 9000        # bind to a specific port
+arboviz . --no-gitignore               # disable .gitignore filtering
+arboviz . --include-dotfiles           # show hidden files
+arboviz . --no-browser                 # start server without opening browser
 ```
 
 Opens your browser to a local URL. Hit `Ctrl+C` to stop.
@@ -295,13 +295,13 @@ Opens your browser to a local URL. Hit `Ctrl+C` to stop.
 
 ## Live updates
 
-treeboard watches the directory with `watchdog`. When files change on disk, the canvas updates in real time via WebSocket — no refresh needed.
+arboviz watches the directory with `watchdog`. When files change on disk, the canvas updates in real time via WebSocket — no refresh needed.
 
 ## Development
 
 ```bash
-git clone https://github.com/heidar-b/treeboard
-cd treeboard
+git clone https://github.com/heidar-b/arboviz
+cd arboviz
 pip install -e ".[dev]"
 pytest
 ```
@@ -422,7 +422,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/treeboard
+      url: https://pypi.org/p/arboviz
     steps:
       - name: Download dist artifacts
         uses: actions/download-artifact@v4
@@ -450,8 +450,8 @@ git commit -m "ci: add PyPI publish workflow (OIDC trusted publisher)"
 - [ ] **Step 1: Create the GitHub repo via `gh` CLI**
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/Personal Projects/treeboard"
-gh repo create heidar-b/treeboard --public --description "Cinematic pyramid visualiser for any directory on disk" --source . --remote origin
+cd "/Users/smb/Infinivo AI Workspace/Personal Projects/arboviz"
+gh repo create heidar-b/arboviz --public --description "Cinematic pyramid visualiser for any directory on disk" --source . --remote origin
 ```
 
 If `gh` prompts for authentication, run `gh auth login` first.
@@ -464,7 +464,7 @@ git push -u origin main
 
 - [ ] **Step 3: Verify on GitHub**
 
-Open the repo: `gh repo view heidar-b/treeboard --web`
+Open the repo: `gh repo view heidar-b/arboviz --web`
 
 Confirm: all files present, CI workflow shows up under the Actions tab.
 
@@ -486,9 +486,9 @@ Under **"Add a new pending publisher"**, fill in:
 
 | Field | Value |
 |---|---|
-| PyPI Project Name | `treeboard` |
+| PyPI Project Name | `arboviz` |
 | Owner | `heidar-b` |
-| Repository name | `treeboard` |
+| Repository name | `arboviz` |
 | Workflow filename | `publish.yml` |
 | Environment name | `pypi` |
 
@@ -503,12 +503,12 @@ No secrets or protection rules required — the OIDC token handles authenticatio
 - [ ] **Step 4: Verify the setup by tagging the first release**
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/Personal Projects/treeboard"
+cd "/Users/smb/Infinivo AI Workspace/Personal Projects/arboviz"
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-Watch the Actions tab on GitHub — the publish job should run and treeboard will appear at https://pypi.org/project/treeboard/ within a few minutes.
+Watch the Actions tab on GitHub — the publish job should run and arboviz will appear at https://pypi.org/project/arboviz/ within a few minutes.
 
 ---
 
@@ -519,17 +519,17 @@ Watch the Actions tab on GitHub — the publish job should run and treeboard wil
 ```bash
 python3 -m venv /tmp/tb-verify
 source /tmp/tb-verify/bin/activate
-pip install treeboard
-treeboard --help
+pip install arboviz
+arboviz --help
 deactivate
 rm -rf /tmp/tb-verify
 ```
 
-Expected output from `treeboard --help`:
+Expected output from `arboviz --help`:
 ```
-usage: treeboard [-h] [--port PORT] [--no-gitignore] [--include-dotfiles] [--no-browser] [path]
+usage: arboviz [-h] [--port PORT] [--no-gitignore] [--include-dotfiles] [--no-browser] [path]
 ```
 
 - [ ] **Step 2: Done**
 
-treeboard is live. Future releases: edit code → commit → `git tag vX.Y.Z && git push origin vX.Y.Z` → PyPI publishes automatically.
+arboviz is live. Future releases: edit code → commit → `git tag vX.Y.Z && git push origin vX.Y.Z` → PyPI publishes automatically.

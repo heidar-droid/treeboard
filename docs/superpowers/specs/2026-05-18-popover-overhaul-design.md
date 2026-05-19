@@ -2,14 +2,14 @@
 
 **Date**: 2026-05-18
 **Author**: Friday (with Sir)
-**Scope**: `src/treeboard/static/popover.js` and related styles, plus new content endpoints
+**Scope**: `src/arboviz/static/popover.js` and related styles, plus new content endpoints
 **Status**: Design — awaiting approval before plan + implementation
 
 ---
 
 ## 1. Motivation
 
-The current popover (`src/treeboard/static/popover.js`) is functional but flat: max 2 popovers (evicts oldest), a single fixed size, basic header drag, body + notes + optional git diff. It treats the popover as a "preview window" — open, glance, close.
+The current popover (`src/arboviz/static/popover.js`) is functional but flat: max 2 popovers (evicts oldest), a single fixed size, basic header drag, body + notes + optional git diff. It treats the popover as a "preview window" — open, glance, close.
 
 The overhaul reframes the popover as a **smart note card with window-grade interaction**:
 
@@ -208,7 +208,7 @@ Keep the existing debounced textarea (`_injectNotes`) but:
 `popover.js` is rewritten as a small state machine plus a render pipeline. Proposed split:
 
 ```
-src/treeboard/static/popover/
+src/arboviz/static/popover/
   index.js          — public API: openFor, closeAll, focusN — same exports as before
   state.js          — popover registry (Map<id, PopoverModel>), z-stack, focus, slots
   layout.js         — cascade positioning, compare snap, chip dock layout
@@ -225,7 +225,7 @@ src/treeboard/static/popover/
   chips.js          — chip dock rendering, drag-to-reorder
 ```
 
-The current single-file `popover.js` becomes a thin shim that re-exports from `popover/index.js` for backward compatibility with `treeboard.js` imports.
+The current single-file `popover.js` becomes a thin shim that re-exports from `popover/index.js` for backward compatibility with `arboviz.js` imports.
 
 ### 7.2 PopoverModel shape
 
@@ -281,11 +281,11 @@ Implementation: each PopoverModel has an `anchor: 'canvas' | 'screen'` field. To
 | `POST` | `/api/popover/bookmark` `{ path, on }` | Toggle bookmark |
 | `GET` | `/api/popover/bookmarks` | List bookmarked paths (for pill dot rendering) |
 
-All endpoints follow the existing FastAPI patterns in `src/treeboard/server.py`.
+All endpoints follow the existing FastAPI patterns in `src/arboviz/server.py`.
 
 ### 7.6 Data flow on open
 
-1. User clicks pill → `treeboard.js` calls `openFor(node, viewport)`
+1. User clicks pill → `arboviz.js` calls `openFor(node, viewport)`
 2. `state.js` allocates PopoverModel, assigns slot, computes cascade position
 3. `motion.js` starts stage 1 (shell materialize)
 4. In parallel: `content/body.js` requests file content, `content/summary.js` requests summary, `content/related.js` requests related files
@@ -346,7 +346,7 @@ Screenshot each state (chip/compact/standard/expanded/full) at fixed viewport fo
 
 ### 10.1 Backward compatibility
 
-`popover.js` keeps its current export surface (`openFor`, etc.). Callers in `treeboard.js` and `multiselect.js` don't change.
+`popover.js` keeps its current export surface (`openFor`, etc.). Callers in `arboviz.js` and `multiselect.js` don't change.
 
 Existing **notes data** persists — same endpoint, same storage format.
 
@@ -367,7 +367,7 @@ Each phase is independently shippable.
 ## 11. Resolved decisions (formerly open questions)
 
 1. **AI summary backend**: **Claude via Anthropic SDK**. Backend calls `claude-haiku-4-5` for speed/cost, uses prompt caching keyed on file content. Requires `ANTHROPIC_API_KEY` in env. If unset on startup, the summary block is omitted silently (no error, no broken UI).
-2. **Bookmark persistence**: **JSON file at `~/.config/treeboard/bookmarks.json`**. Schema: `{ "bookmarks": [{ "path": "/abs/path", "addedAt": "ISO8601" }] }`. Server reads on startup, writes on each toggle. Atomic write via temp-file + rename.
+2. **Bookmark persistence**: **JSON file at `~/.config/arboviz/bookmarks.json`**. Schema: `{ "bookmarks": [{ "path": "/abs/path", "addedAt": "ISO8601" }] }`. Server reads on startup, writes on each toggle. Atomic write via temp-file + rename.
 3. **Chip dock visibility**: **Auto-hide when empty**. Dock fades in (180ms) on first chip; fades out (220ms) when last chip is restored or closed.
 4. **Compare-mode trigger**: `⌘-click` on Mac, `Alt-click` on Windows/Linux. Detection via `e.metaKey` (Mac) vs `e.altKey` (other). Does NOT touch `multiselect.js`'s existing `Ctrl/⌘ + Shift` conventions.
 5. **Keyboard slot cap**: **Hard-cap at 4**. Popovers beyond 4 get no slot indicator and no `⌘N` shortcut — accessible via click, cycle, or by closing/minimizing one of the slotted four.
@@ -381,12 +381,12 @@ The current theme (sage on near-black canvas, `#06120c` background, `#b6d4a7` in
 ### 11.5.1 Toggle
 
 - Header chrome adds a small `☀ / ☾` toggle in the top-right of the canvas chrome (not on the popover header itself).
-- Choice persists in `localStorage` under key `treeboard:theme` (`'dark' | 'light'`).
+- Choice persists in `localStorage` under key `arboviz:theme` (`'dark' | 'light'`).
 - Initial value follows `prefers-color-scheme` if no stored preference exists.
 
 ### 11.5.2 Tokens
 
-All colors move to CSS custom properties on `:root` (dark) and `[data-theme="light"]` (light). Existing hex literals in `treeboard.css` and `popover.css` get replaced with `var(--…)` references.
+All colors move to CSS custom properties on `:root` (dark) and `[data-theme="light"]` (light). Existing hex literals in `arboviz.css` and `popover.css` get replaced with `var(--…)` references.
 
 | Token | Dark (current) | Light (new) |
 |---|---|---|
@@ -424,9 +424,9 @@ Mode-specific accents (git status dots, heat colors, error reds) keep their hue 
 
 ### 11.5.5 Implementation notes
 
-- Add `--theme` tokens to `:root` block at top of `treeboard.css`; mirror under `[data-theme="light"]`
+- Add `--theme` tokens to `:root` block at top of `arboviz.css`; mirror under `[data-theme="light"]`
 - Apply theme by setting `document.documentElement.dataset.theme = 'light' | 'dark'`
-- Audit every hex literal in `treeboard.css` (~40 occurrences) and `popover.css` and replace with token references — files that haven't been touched in years may still have raw `#b6d4a7`
+- Audit every hex literal in `arboviz.css` (~40 occurrences) and `popover.css` and replace with token references — files that haven't been touched in years may still have raw `#b6d4a7`
 - The cascade-reveal CSS animation (`pl-node-in`) uses no color → no change needed
 - The new popover content blocks (§6) must use tokens from day one — don't hardcode hex
 - Visual regression tests (§9.3) capture screenshots in BOTH themes

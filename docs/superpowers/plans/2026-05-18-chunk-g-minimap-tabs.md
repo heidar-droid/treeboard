@@ -1,10 +1,10 @@
-# Treeboard — Chunk G: Minimap + Multi-Project Tabs
+# Arboviz — Chunk G: Minimap + Multi-Project Tabs
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a Minimap (120×80px canvas thumbnail in the bottom-right with a viewport rect indicator and click-to-pan) and a Project Tabs bar (localStorage-persisted project URL tabs at the top for switching between multiple treeboard instances).
+**Goal:** Add a Minimap (120×80px canvas thumbnail in the bottom-right with a viewport rect indicator and click-to-pan) and a Project Tabs bar (localStorage-persisted project URL tabs at the top for switching between multiple arboviz instances).
 
-**Architecture:** Two new ES modules (`minimap.js`, `project-tabs.js`), one CSS block appended to `treeboard.css`, one wiring change in `treeboard.js`. The minimap subscribes to `camera.onChange` and re-renders on every pan/zoom. Project tabs use only `localStorage` — no backend changes needed.
+**Architecture:** Two new ES modules (`minimap.js`, `project-tabs.js`), one CSS block appended to `arboviz.css`, one wiring change in `arboviz.js`. The minimap subscribes to `camera.onChange` and re-renders on every pan/zoom. Project tabs use only `localStorage` — no backend changes needed.
 
 **Tech Stack:** Vanilla ES modules, Canvas 2D API (minimap), localStorage (tabs), CSS transitions.
 
@@ -14,16 +14,16 @@
 
 | Action | File |
 |---|---|
-| **Create** | `src/treeboard/static/minimap.js` |
-| **Create** | `src/treeboard/static/project-tabs.js` |
-| **Modify** | `src/treeboard/static/treeboard.css` — append Chunk G CSS |
-| **Modify** | `src/treeboard/static/treeboard.js` — import + wire both modules |
+| **Create** | `src/arboviz/static/minimap.js` |
+| **Create** | `src/arboviz/static/project-tabs.js` |
+| **Modify** | `src/arboviz/static/arboviz.css` — append Chunk G CSS |
+| **Modify** | `src/arboviz/static/arboviz.js` — import + wire both modules |
 
 ---
 
 ## Task 1 — `minimap.js`
 
-**File:** Create `src/treeboard/static/minimap.js`
+**File:** Create `src/arboviz/static/minimap.js`
 
 ```js
 const W = 120, H = 80;
@@ -116,10 +116,10 @@ Commit: `feat(frontend): add minimap canvas — thumbnail + viewport rect + clic
 
 ## Task 2 — `project-tabs.js`
 
-**File:** Create `src/treeboard/static/project-tabs.js`
+**File:** Create `src/arboviz/static/project-tabs.js`
 
 ```js
-const LS_KEY = "treeboard:tabs";
+const LS_KEY = "arboviz:tabs";
 
 export function setupProjectTabs() {
   _render();
@@ -210,7 +210,7 @@ Commit: `feat(frontend): add project tabs — localStorage-persisted URL tabs fo
 
 ## Task 3 — CSS additions
 
-**File:** Append to `src/treeboard/static/treeboard.css`
+**File:** Append to `src/arboviz/static/arboviz.css`
 
 ```css
 /* ============================================================
@@ -322,9 +322,9 @@ Commit: `feat(frontend): add minimap and project tab bar CSS`
 
 ---
 
-## Task 4 — Wire `treeboard.js`
+## Task 4 — Wire `arboviz.js`
 
-**File:** Modify `src/treeboard/static/treeboard.js`
+**File:** Modify `src/arboviz/static/arboviz.js`
 
 ### Change A — Add imports after the `project-tabs` import line (after bookmarks import)
 
@@ -369,4 +369,4 @@ Replace with:
   if (state.mode === "git") {
 ```
 
-Commit: `feat(frontend): wire minimap and project tabs into treeboard`
+Commit: `feat(frontend): wire minimap and project tabs into arboviz`

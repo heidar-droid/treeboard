@@ -1,10 +1,10 @@
-# Treeboard — Chunk A: Backend API Implementation Plan
+# Arboviz — Chunk A: Backend API Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add 9 new FastAPI endpoints to `server.py` that power git integration, content search, import graph, token counting, snapshots, notes, bookmarks, and saved views.
 
-**Architecture:** All endpoints live in `build_app()` in `server.py`, following the existing `_safe_path()` security pattern. Persistence (notes, bookmarks, views, snapshots) writes to a `.treeboard/` directory inside the scanned root — gitignored by default. Each new logical group (git, search, imports, persist) gets its own module file imported by `server.py`.
+**Architecture:** All endpoints live in `build_app()` in `server.py`, following the existing `_safe_path()` security pattern. Persistence (notes, bookmarks, views, snapshots) writes to a `.arboviz/` directory inside the scanned root — gitignored by default. Each new logical group (git, search, imports, persist) gets its own module file imported by `server.py`.
 
 **Tech Stack:** Python 3.11+, FastAPI, standard library (`subprocess`, `pathlib`, `json`, `re`), existing `pathspec` for gitignore filtering.
 
@@ -14,11 +14,11 @@
 
 | File | Action | Responsibility |
 |---|---|---|
-| `src/treeboard/git.py` | **Create** | `git_status()`, `git_diff()` — run git, parse porcelain output |
-| `src/treeboard/search.py` | **Create** | `content_search()` — grep files by string/regex |
-| `src/treeboard/imports.py` | **Create** | `parse_imports()` — build adjacency map from JS/TS/Python imports |
-| `src/treeboard/persist.py` | **Create** | `load_json()`, `save_json()` — read/write `.treeboard/*.json` |
-| `src/treeboard/server.py` | **Modify** | Wire 9 new routes using the above modules |
+| `src/arboviz/git.py` | **Create** | `git_status()`, `git_diff()` — run git, parse porcelain output |
+| `src/arboviz/search.py` | **Create** | `content_search()` — grep files by string/regex |
+| `src/arboviz/imports.py` | **Create** | `parse_imports()` — build adjacency map from JS/TS/Python imports |
+| `src/arboviz/persist.py` | **Create** | `load_json()`, `save_json()` — read/write `.arboviz/*.json` |
+| `src/arboviz/server.py` | **Modify** | Wire 9 new routes using the above modules |
 | `tests/test_git.py` | **Create** | Unit tests for git module |
 | `tests/test_search.py` | **Create** | Unit tests for search module |
 | `tests/test_imports.py` | **Create** | Unit tests for imports module |
@@ -30,7 +30,7 @@
 ## Task 1: `git.py` — Git Status & Diff
 
 **Files:**
-- Create: `src/treeboard/git.py`
+- Create: `src/arboviz/git.py`
 - Test: `tests/test_git.py`
 
 - [ ] **Step 1: Write failing tests**
@@ -40,7 +40,7 @@
 import subprocess
 import pathlib
 import pytest
-from treeboard.git import git_status, git_diff
+from arboviz.git import git_status, git_diff
 
 
 def test_git_status_not_a_repo(tmp_path):
@@ -81,14 +81,14 @@ def test_git_diff_returns_output(tmp_path, monkeypatch):
 - [ ] **Step 2: Run — expect FAIL (module not found)**
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/personal projects/treeboard"
+cd "/Users/smb/Infinivo AI Workspace/personal projects/arboviz"
 python -m pytest tests/test_git.py -v 2>&1 | tail -20
 ```
 
 - [ ] **Step 3: Implement `git.py`**
 
 ```python
-# src/treeboard/git.py
+# src/arboviz/git.py
 from __future__ import annotations
 
 import pathlib
@@ -159,7 +159,7 @@ Expected: `4 passed`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/treeboard/git.py tests/test_git.py
+git add src/arboviz/git.py tests/test_git.py
 git commit -m "feat(backend): add git status and diff module"
 ```
 
@@ -168,7 +168,7 @@ git commit -m "feat(backend): add git status and diff module"
 ## Task 2: `search.py` — Content Search
 
 **Files:**
-- Create: `src/treeboard/search.py`
+- Create: `src/arboviz/search.py`
 - Test: `tests/test_search.py`
 
 - [ ] **Step 1: Write failing tests**
@@ -177,7 +177,7 @@ git commit -m "feat(backend): add git status and diff module"
 # tests/test_search.py
 import pathlib
 import pytest
-from treeboard.search import content_search
+from arboviz.search import content_search
 
 
 def test_search_finds_string(tmp_path):
@@ -208,8 +208,8 @@ def test_search_skips_binary(tmp_path):
 
 
 def test_search_case_insensitive(tmp_path):
-    (tmp_path / "readme.md").write_text("# Treeboard\nA tool.\n")
-    results = content_search(tmp_path, "treeboard", case_sensitive=False)
+    (tmp_path / "readme.md").write_text("# Arboviz\nA tool.\n")
+    results = content_search(tmp_path, "arboviz", case_sensitive=False)
     assert len(results) == 1
 ```
 
@@ -222,7 +222,7 @@ python -m pytest tests/test_search.py -v 2>&1 | tail -20
 - [ ] **Step 3: Implement `search.py`**
 
 ```python
-# src/treeboard/search.py
+# src/arboviz/search.py
 from __future__ import annotations
 
 import pathlib
@@ -292,7 +292,7 @@ Expected: `5 passed`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/treeboard/search.py tests/test_search.py
+git add src/arboviz/search.py tests/test_search.py
 git commit -m "feat(backend): add content search module"
 ```
 
@@ -301,7 +301,7 @@ git commit -m "feat(backend): add content search module"
 ## Task 3: `imports.py` — Dependency Graph
 
 **Files:**
-- Create: `src/treeboard/imports.py`
+- Create: `src/arboviz/imports.py`
 - Test: `tests/test_imports.py`
 
 - [ ] **Step 1: Write failing tests**
@@ -310,7 +310,7 @@ git commit -m "feat(backend): add content search module"
 # tests/test_imports.py
 import pathlib
 import pytest
-from treeboard.imports import parse_imports
+from arboviz.imports import parse_imports
 
 
 def test_js_import(tmp_path):
@@ -326,7 +326,7 @@ def test_js_import(tmp_path):
 
 
 def test_python_import(tmp_path):
-    (tmp_path / "main.py").write_text("from treeboard.scan import scan_tree\nimport os\n")
+    (tmp_path / "main.py").write_text("from arboviz.scan import scan_tree\nimport os\n")
     (tmp_path / "scan.py").write_text("def scan_tree(): pass\n")
     graph = parse_imports(tmp_path)
     # 'os' is stdlib — won't resolve to a file in tmp_path, not in graph edges
@@ -357,7 +357,7 @@ python -m pytest tests/test_imports.py -v 2>&1 | tail -20
 - [ ] **Step 3: Implement `imports.py`**
 
 ```python
-# src/treeboard/imports.py
+# src/arboviz/imports.py
 from __future__ import annotations
 
 import pathlib
@@ -451,7 +451,7 @@ Expected: `4 passed`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/treeboard/imports.py tests/test_imports.py
+git add src/arboviz/imports.py tests/test_imports.py
 git commit -m "feat(backend): add import graph parser (JS/TS/Python)"
 ```
 
@@ -460,7 +460,7 @@ git commit -m "feat(backend): add import graph parser (JS/TS/Python)"
 ## Task 4: `persist.py` — Local JSON Storage
 
 **Files:**
-- Create: `src/treeboard/persist.py`
+- Create: `src/arboviz/persist.py`
 - Test: `tests/test_persist.py`
 
 - [ ] **Step 1: Write failing tests**
@@ -469,13 +469,13 @@ git commit -m "feat(backend): add import graph parser (JS/TS/Python)"
 # tests/test_persist.py
 import pathlib
 import pytest
-from treeboard.persist import load_json, save_json, treeboard_dir
+from arboviz.persist import load_json, save_json, arboviz_dir
 
 
-def test_treeboard_dir_creates_directory(tmp_path):
-    d = treeboard_dir(tmp_path)
+def test_arboviz_dir_creates_directory(tmp_path):
+    d = arboviz_dir(tmp_path)
     assert d.is_dir()
-    assert d.name == ".treeboard"
+    assert d.name == ".arboviz"
 
 
 def test_save_and_load_roundtrip(tmp_path):
@@ -492,7 +492,7 @@ def test_load_missing_returns_default(tmp_path):
 
 def test_save_creates_gitignore(tmp_path):
     save_json(tmp_path, "test", {})
-    gi = tmp_path / ".treeboard" / ".gitignore"
+    gi = tmp_path / ".arboviz" / ".gitignore"
     assert gi.exists()
     assert "*" in gi.read_text()
 ```
@@ -506,16 +506,16 @@ python -m pytest tests/test_persist.py -v 2>&1 | tail -20
 - [ ] **Step 3: Implement `persist.py`**
 
 ```python
-# src/treeboard/persist.py
+# src/arboviz/persist.py
 from __future__ import annotations
 
 import json
 import pathlib
 
 
-def treeboard_dir(root: pathlib.Path) -> pathlib.Path:
-    """Return (and create) the .treeboard/ directory inside root."""
-    d = root / ".treeboard"
+def arboviz_dir(root: pathlib.Path) -> pathlib.Path:
+    """Return (and create) the .arboviz/ directory inside root."""
+    d = root / ".arboviz"
     d.mkdir(exist_ok=True)
     gi = d / ".gitignore"
     if not gi.exists():
@@ -524,8 +524,8 @@ def treeboard_dir(root: pathlib.Path) -> pathlib.Path:
 
 
 def load_json(root: pathlib.Path, name: str, *, default=None):
-    """Load .treeboard/<name>.json, returning default if missing or corrupt."""
-    p = treeboard_dir(root) / f"{name}.json"
+    """Load .arboviz/<name>.json, returning default if missing or corrupt."""
+    p = arboviz_dir(root) / f"{name}.json"
     if not p.exists():
         return default if default is not None else {}
     try:
@@ -535,8 +535,8 @@ def load_json(root: pathlib.Path, name: str, *, default=None):
 
 
 def save_json(root: pathlib.Path, name: str, data) -> None:
-    """Write data to .treeboard/<name>.json atomically."""
-    d = treeboard_dir(root)
+    """Write data to .arboviz/<name>.json atomically."""
+    d = arboviz_dir(root)
     tmp = d / f"{name}.json.tmp"
     tmp.write_text(json.dumps(data, indent=2))
     tmp.replace(d / f"{name}.json")
@@ -553,7 +553,7 @@ Expected: `4 passed`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/treeboard/persist.py tests/test_persist.py
+git add src/arboviz/persist.py tests/test_persist.py
 git commit -m "feat(backend): add local JSON persistence module"
 ```
 
@@ -562,7 +562,7 @@ git commit -m "feat(backend): add local JSON persistence module"
 ## Task 5: Wire 9 New Endpoints into `server.py`
 
 **Files:**
-- Modify: `src/treeboard/server.py`
+- Modify: `src/arboviz/server.py`
 - Test: `tests/test_server_new.py`
 
 **New endpoints:**
@@ -574,7 +574,7 @@ git commit -m "feat(backend): add local JSON persistence module"
 | GET | `/api/search` | `?q=&regex=0&ci=0` Returns `[{path,name,rel,line,snippet}]` |
 | GET | `/api/imports` | Returns full adjacency map `{abs_path: [abs_path]}` |
 | GET | `/api/tokens` | `?path=` Returns `{path, tokens, chars}` |
-| POST | `/api/snapshot` | Body `{paths:[]}` Saves checkpoint to `.treeboard/snapshots/<ts>/` |
+| POST | `/api/snapshot` | Body `{paths:[]}` Saves checkpoint to `.arboviz/snapshots/<ts>/` |
 | GET | `/api/notes` | Returns `{path: note_text}` map |
 | POST | `/api/notes` | Body `{path, note}` Upsert note. Empty note = delete |
 | GET | `/api/bookmarks` | Returns `[path, ...]` list |
@@ -589,7 +589,7 @@ git commit -m "feat(backend): add local JSON persistence module"
 # tests/test_server_new.py
 import pytest
 from fastapi.testclient import TestClient
-from treeboard.server import build_app
+from arboviz.server import build_app
 
 
 # ── git ──────────────────────────────────────────────────────────────────────
@@ -670,7 +670,7 @@ def test_snapshot_creates_files(tmp_tree):
     assert r.status_code == 200
     data = r.json()
     assert "snapshot_id" in data
-    snap_dir = tmp_tree / ".treeboard" / "snapshots" / data["snapshot_id"]
+    snap_dir = tmp_tree / ".arboviz" / "snapshots" / data["snapshot_id"]
     assert snap_dir.is_dir()
 
 
@@ -726,13 +726,13 @@ python -m pytest tests/test_server_new.py -v 2>&1 | tail -30
 
 - [ ] **Step 3: Add imports at top of `server.py`**
 
-After the existing imports block (after `from treeboard.watcher import TreeWatcher`), add:
+After the existing imports block (after `from arboviz.watcher import TreeWatcher`), add:
 
 ```python
-from treeboard.git import git_status, git_diff
-from treeboard.search import content_search
-from treeboard.imports import parse_imports
-from treeboard.persist import load_json, save_json
+from arboviz.git import git_status, git_diff
+from arboviz.search import content_search
+from arboviz.imports import parse_imports
+from arboviz.persist import load_json, save_json
 ```
 
 - [ ] **Step 4: Add all 9 endpoint groups inside `build_app()`, after the existing `/api/open` route**
@@ -796,7 +796,7 @@ from treeboard.persist import load_json, save_json
         if not paths:
             raise HTTPException(422, "paths required")
         snap_id = str(int(time.time() * 1000))
-        snap_dir = root_p / ".treeboard" / "snapshots" / snap_id
+        snap_dir = root_p / ".arboviz" / "snapshots" / snap_id
         snap_dir.mkdir(parents=True, exist_ok=True)
         saved = []
         for raw in paths:
@@ -888,7 +888,7 @@ Expected: all existing tests still pass.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/treeboard/server.py tests/test_server_new.py
+git add src/arboviz/server.py tests/test_server_new.py
 git commit -m "feat(backend): wire 9 new API endpoints (git, search, imports, tokens, snapshot, notes, bookmarks, views)"
 ```
 

@@ -1,4 +1,4 @@
-# Treeboard — Vibe Coder Feature Suite
+# Arboviz — Vibe Coder Feature Suite
 **Date:** 2026-05-18  
 **Status:** Approved  
 **Scope:** Full feature expansion targeting AI-assisted ("vibe") coding workflows
@@ -7,7 +7,7 @@
 
 ## Overview
 
-Treeboard gains 20 features across five pillars: AI Workflow, Git Integration, Navigation & Search, Quality of Life, and a floating Control Center HUD. All features are additive — existing behaviour is unchanged unless explicitly noted.
+Arboviz gains 20 features across five pillars: AI Workflow, Git Integration, Navigation & Search, Quality of Life, and a floating Control Center HUD. All features are additive — existing behaviour is unchanged unless explicitly noted.
 
 ---
 
@@ -22,12 +22,12 @@ Treeboard gains 20 features across five pillars: AI Workflow, Git Integration, N
 | `/api/search` | GET `?q=&regex=` | Grep file contents; return `{path, line, snippet}[]` |
 | `/api/imports` | GET | Parse import/require statements for every file; return adjacency map |
 | `/api/tokens` | GET `?path=` | Estimate token count (chars/4 heuristic, no API call) for a file or directory |
-| `/api/snapshot` | POST | Write current file contents of selected paths to `.treeboard/snapshots/<ts>/` |
-| `/api/note` | GET/POST | Read/write per-file annotations from `.treeboard/notes.json` |
-| `/api/bookmarks` | GET/POST/DELETE | Persist pinned paths to `.treeboard/bookmarks.json` |
-| `/api/views` | GET/POST/DELETE | Persist named canvas views (zoom, pan, collapsed set) to `.treeboard/views.json` |
+| `/api/snapshot` | POST | Write current file contents of selected paths to `.arboviz/snapshots/<ts>/` |
+| `/api/note` | GET/POST | Read/write per-file annotations from `.arboviz/notes.json` |
+| `/api/bookmarks` | GET/POST/DELETE | Persist pinned paths to `.arboviz/bookmarks.json` |
+| `/api/views` | GET/POST/DELETE | Persist named canvas views (zoom, pan, collapsed set) to `.arboviz/views.json` |
 
-All `.treeboard/` files are local-only and gitignored by default.
+All `.arboviz/` files are local-only and gitignored by default.
 
 ### Frontend additions
 
@@ -117,7 +117,7 @@ Pill glow intensity mapped to `mtime`. Files modified in the last hour: brightes
 Star icon on pill hover pins the file to the Pin Bar. Persisted via `/api/bookmarks`. Pinned pill has a subtle star badge. Removing from Pin Bar unpins.
 
 ### 14. File Annotations / Notes
-Long-press (500ms) on a pill opens a small textarea popover for a sticky note. Notes stored in `.treeboard/notes.json`. Pills with notes show a small dot indicator.
+Long-press (500ms) on a pill opens a small textarea popover for a sticky note. Notes stored in `.arboviz/notes.json`. Pills with notes show a small dot indicator.
 
 ### 15. Saved Views
 `⌘K` → "Save view as…" prompts for a name. Saves `{zoom, pan, collapsed, pinned}`. "Switch view" lists saved views. Persisted via `/api/views`.
@@ -126,7 +126,7 @@ Long-press (500ms) on a pill opens a small textarea popover for a sticky note. N
 In Graph mode, files with zero inbound import edges and not in the Pin Bar get a faint red glow border. Tooltip: "No imports found — possible orphan."
 
 ### 17. Checkpoint / Snapshot
-Control Center quick icon → "Save checkpoint". POSTs selected file paths to `/api/snapshot`. Server writes full file contents to `.treeboard/snapshots/<timestamp>/`. Restore: ⌘K → "Restore snapshot" → pick timestamp → server overwrites files. Confirmation dialog before restore.
+Control Center quick icon → "Save checkpoint". POSTs selected file paths to `/api/snapshot`. Server writes full file contents to `.arboviz/snapshots/<timestamp>/`. Restore: ⌘K → "Restore snapshot" → pick timestamp → server overwrites files. Confirmation dialog before restore.
 
 ### 18. ⌘K Action Palette (extended)
 Existing fuzzy file search gains a second tab: Actions. Actions include all features above as keyboard-triggered commands. Fuzzy-searchable.
@@ -135,12 +135,12 @@ Existing fuzzy file search gains a second tab: Actions. Actions include all feat
 Small `120×80px` canvas thumbnail fixed in the viewport corner (toggleable). Renders a simplified dot-map of the tree. Viewport rectangle shown as overlay. Click + drag navigates the main canvas.
 
 ### 20. Multi-Project Tabs
-Tab strip above the canvas (not the pill bar). Each tab = one `treeboard <path>` session. Tabs persist in `localStorage`. Add tab via `+` button or CLI `treeboard path1 path2`.
+Tab strip above the canvas (not the pill bar). Each tab = one `arboviz <path>` session. Tabs persist in `localStorage`. Add tab via `+` button or CLI `arboviz path1 path2`.
 
 ---
 
 ## Non-Goals
-- No cloud sync — all `.treeboard/` data is local
+- No cloud sync — all `.arboviz/` data is local
 - No "Explain This" Claude API call in this iteration (network dependency, auth complexity — add later)
 - No Windows-specific testing
 

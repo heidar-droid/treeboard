@@ -1,20 +1,20 @@
-# treeboard
+# arboviz
 
 **Cinematic pyramid visualiser for any directory on disk.**
 
-[![PyPI](https://img.shields.io/pypi/v/treeboard)](https://pypi.org/project/treeboard/)
-[![Python](https://img.shields.io/pypi/pyversions/treeboard)](https://pypi.org/project/treeboard/)
+[![PyPI](https://img.shields.io/pypi/v/arboviz)](https://pypi.org/project/arboviz/)
+[![Python](https://img.shields.io/pypi/pyversions/arboviz)](https://pypi.org/project/arboviz/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/heidar-droid/treeboard/actions/workflows/ci.yml/badge.svg)](https://github.com/heidar-droid/treeboard/actions/workflows/ci.yml)
+[![CI](https://github.com/heidar-droid/arboviz/actions/workflows/ci.yml/badge.svg)](https://github.com/heidar-droid/arboviz/actions/workflows/ci.yml)
 
-treeboard scans a folder and opens a browser canvas where every file and directory is a draggable, zoomable pill — with live file preview, fuzzy search, and real-time updates as you edit.
+arboviz scans a folder and opens a browser canvas where every file and directory is a draggable, zoomable pill — with live file preview, fuzzy search, and real-time updates as you edit.
 
 ---
 
 ## Install
 
 ```bash
-pip install treeboard
+pip install arboviz
 ```
 
 Requires Python 3.11+. No other dependencies beyond pip.
@@ -23,16 +23,16 @@ Requires Python 3.11+. No other dependencies beyond pip.
 
 ```bash
 # Visualise the current directory
-treeboard .
+arboviz .
 
 # Visualise any path
-treeboard ~/projects/myapp
+arboviz ~/projects/myapp
 
 # Options
-treeboard ~/myproject --port 9000        # bind to a specific port
-treeboard . --no-gitignore               # disable .gitignore filtering
-treeboard . --include-dotfiles           # show hidden files
-treeboard . --no-browser                 # start server without opening browser
+arboviz ~/myproject --port 9000        # bind to a specific port
+arboviz . --no-gitignore               # disable .gitignore filtering
+arboviz . --include-dotfiles           # show hidden files
+arboviz . --no-browser                 # start server without opening browser
 ```
 
 Opens your browser to a local URL. Hit `Ctrl+C` to stop.
@@ -64,13 +64,13 @@ Opens your browser to a local URL. Hit `Ctrl+C` to stop.
 
 ## Live updates
 
-treeboard watches the directory with `watchdog`. When files change on disk, the canvas updates in real time via WebSocket — no refresh needed.
+arboviz watches the directory with `watchdog`. When files change on disk, the canvas updates in real time via WebSocket — no refresh needed.
 
 ## Development
 
 ```bash
-git clone https://github.com/heidar-droid/treeboard
-cd treeboard
+git clone https://github.com/heidar-droid/arboviz
+cd arboviz
 pip install -e ".[dev]"
 pytest
 ```

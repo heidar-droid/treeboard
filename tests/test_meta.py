@@ -1,5 +1,5 @@
 import pathlib
-from treeboard.meta import folder_meta
+from arboviz.meta import folder_meta
 
 
 def test_folder_meta_counts_files(tmp_tree):

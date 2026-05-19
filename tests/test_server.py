@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from treeboard.server import build_app
+from arboviz.server import build_app
 
 
 def test_tree_endpoint(tmp_tree):
@@ -52,13 +52,13 @@ def test_root_serves_static_index(tmp_tree):
 
 def test_reveal_endpoint(tmp_tree, monkeypatch):
     from fastapi.testclient import TestClient
-    from treeboard.server import build_app
+    from arboviz.server import build_app
     calls = []
     def fake_run(args, **kw):
         calls.append(args)
         class R: returncode = 0
         return R()
-    monkeypatch.setattr("treeboard.server.subprocess.run", fake_run)
+    monkeypatch.setattr("arboviz.server.subprocess.run", fake_run)
     app = build_app(tmp_tree)
     client = TestClient(app)
     p = str(tmp_tree / "ai-assets" / "copy.md")
@@ -71,13 +71,13 @@ def test_reveal_endpoint(tmp_tree, monkeypatch):
 
 def test_open_endpoint(tmp_tree, monkeypatch):
     from fastapi.testclient import TestClient
-    from treeboard.server import build_app
+    from arboviz.server import build_app
     calls = []
     def fake_run(args, **kw):
         calls.append(args)
         class R: returncode = 0
         return R()
-    monkeypatch.setattr("treeboard.server.subprocess.run", fake_run)
+    monkeypatch.setattr("arboviz.server.subprocess.run", fake_run)
     app = build_app(tmp_tree)
     client = TestClient(app)
     p = str(tmp_tree / "ai-assets" / "copy.md")
@@ -91,7 +91,7 @@ import asyncio as _asyncio
 
 @pytest.mark.asyncio
 async def test_lifespan_starts_watcher_and_queues_event(tmp_tree):
-    from treeboard.server import build_app
+    from arboviz.server import build_app
     app = build_app(tmp_tree)
     async with app.router.lifespan_context(app):
         new = tmp_tree / "lifespan-fresh.md"

@@ -1,29 +1,29 @@
-# Treeboard Launch Film Implementation Plan
+# Arboviz Launch Film Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Produce and launch the Treeboard "In the Beginning" cinematic launch film — a 90s creation myth — in three cuts (90s master, 60s X loop, 9:16 vertical) over 5 days using Kie.ai (Kling 3.0 + Nano Banana + voice generation), DaVinci Resolve, and a 4-tweet launch thread.
+**Goal:** Produce and launch the Arboviz "In the Beginning" cinematic launch film — a 90s creation myth — in three cuts (90s master, 60s X loop, 9:16 vertical) over 5 days using Kie.ai (Kling 3.0 + Nano Banana + voice generation), DaVinci Resolve, and a 4-tweet launch thread.
 
 **Architecture:** Production runs as a sequential pipeline: (1) build a Kling Elements library of canonical pill node references in Nano Banana to lock visual consistency, (2) generate 8 cinematic clips with Kling 3.0 via Kie.ai API with `sound: true` for native audio, (3) generate the VO line via Kie.ai voice endpoint, (4) assemble all assets in DaVinci Resolve with a single LUT applied across every clip, (5) export three cuts, (6) ship the launch thread.
 
 **Tech Stack:** Kie.ai API (Kling 3.0, Nano Banana, voice generation), curl + bash scripts, DaVinci Resolve (free), local asset storage in `media/launch-film/`, git for asset versioning.
 
-**Reference spec:** `docs/superpowers/specs/2026-05-18-treeboard-launch-film-design.md`
+**Reference spec:** `docs/superpowers/specs/2026-05-18-arboviz-launch-film-design.md`
 
 ---
 
 ## File Structure
 
-All artifacts produced by this plan live under `media/launch-film/` in the Treeboard repo. Scripts that call the Kie.ai API live under `scripts/launch-film/`.
+All artifacts produced by this plan live under `media/launch-film/` in the Arboviz repo. Scripts that call the Kie.ai API live under `scripts/launch-film/`.
 
 ```
 media/launch-film/
 ├── elements/                    # Kling Elements library source images
-│   ├── treeboard_node_hero.png
-│   ├── treeboard_node_front.png
-│   ├── treeboard_node_quarter_left.png
-│   ├── treeboard_node_quarter_right.png
-│   └── treeboard_node_back.png
+│   ├── arboviz_node_hero.png
+│   ├── arboviz_node_front.png
+│   ├── arboviz_node_quarter_left.png
+│   ├── arboviz_node_quarter_right.png
+│   └── arboviz_node_back.png
 ├── keyframes/
 │   └── galaxy_keyframe.png      # Scene 3 image-to-video source
 ├── clips/
@@ -38,11 +38,11 @@ media/launch-film/
 ├── audio/
 │   └── vo-lockup.wav            # Generated VO line
 ├── davinci/
-│   └── treeboard-launch.drp     # DaVinci Resolve project file
+│   └── arboviz-launch.drp     # DaVinci Resolve project file
 └── exports/
-    ├── treeboard-launch-90s-16x9.mp4
-    ├── treeboard-launch-60s-16x9.mp4
-    └── treeboard-launch-60s-9x16.mp4
+    ├── arboviz-launch-90s-16x9.mp4
+    ├── arboviz-launch-60s-16x9.mp4
+    └── arboviz-launch-60s-9x16.mp4
 
 scripts/launch-film/
 ├── kie_client.sh                # Auth + helpers
@@ -52,7 +52,7 @@ scripts/launch-film/
 └── poll_task.sh                 # Polls task status until complete
 
 docs/superpowers/specs/
-└── 2026-05-18-treeboard-launch-film-design.md  # (already exists)
+└── 2026-05-18-arboviz-launch-film-design.md  # (already exists)
 ```
 
 ---
@@ -71,7 +71,7 @@ docs/superpowers/specs/
 - [ ] **Step 1: Create the directory structure**
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/Personal Projects/treeboard"
+cd "/Users/smb/Infinivo AI Workspace/Personal Projects/arboviz"
 mkdir -p media/launch-film/{elements,keyframes,clips,audio,davinci,exports}
 mkdir -p scripts/launch-film
 touch media/launch-film/{elements,keyframes,clips,audio,exports}/.gitkeep
@@ -89,7 +89,7 @@ Expected: `2` (key appears twice in workspace env). If `0`, stop and ask Sir for
 
 ```bash
 #!/bin/bash
-# Kie.ai API client helpers for the Treeboard launch film
+# Kie.ai API client helpers for the Arboviz launch film
 set -euo pipefail
 
 KIE_API_KEY="${KIE_API_KEY:-$(grep '^KIE_API_KEY=' "/Users/smb/Infinivo AI Workspace/.env" | head -1 | cut -d= -f2)}"
@@ -123,7 +123,7 @@ chmod +x scripts/launch-film/kie_client.sh
 - [ ] **Step 5: Smoke-test the Kie.ai API**
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/Personal Projects/treeboard"
+cd "/Users/smb/Infinivo AI Workspace/Personal Projects/arboviz"
 source scripts/launch-film/kie_client.sh
 kie_post "/jobs/createTask" '{}' | python3 -m json.tool
 ```
@@ -139,11 +139,11 @@ git commit -m "chore(launch-film): scaffold workspace and Kie.ai client"
 
 ---
 
-## Task 2: Generate the Canonical Treeboard Pill Node (Element 1 of 5)
+## Task 2: Generate the Canonical Arboviz Pill Node (Element 1 of 5)
 
 **Files:**
 - Create: `scripts/launch-film/generate_element.sh`
-- Create: `media/launch-film/elements/treeboard_node_hero.png`
+- Create: `media/launch-film/elements/arboviz_node_hero.png`
 
 - [ ] **Step 1: Create the Nano Banana generation script**
 
@@ -202,15 +202,15 @@ chmod +x scripts/launch-film/generate_element.sh
 - [ ] **Step 2: Generate the canonical hero node**
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/Personal Projects/treeboard"
+cd "/Users/smb/Infinivo AI Workspace/Personal Projects/arboviz"
 ./scripts/launch-film/generate_element.sh "A single glowing pill-shaped node, floating in absolute darkness. Sage-green bioluminescent glow (#b6d4a7) emanating from the pill body. Soft inner glow, crisp outer halo at 30px radius. Rounded rectangle shape, 70px wide × 26px tall. Subtle text 'index.ts' rendered in JetBrains Mono at 9px inside the pill in soft sage. Dark forest green-black background (#060a08). Subtle radial vignette. Film grain overlay. Cinematic, photorealistic, depth of field, 4K. No human. No interface. No screen. Just the pill in void." \
-  media/launch-film/elements/treeboard_node_hero.png
+  media/launch-film/elements/arboviz_node_hero.png
 ```
 
 - [ ] **Step 3: Open the image and visually verify it matches the brief**
 
 ```bash
-open media/launch-film/elements/treeboard_node_hero.png
+open media/launch-film/elements/arboviz_node_hero.png
 ```
 
 Checklist:
@@ -226,8 +226,8 @@ If any check fails: regenerate with prompt adjustments (max 3 attempts before es
 - [ ] **Step 4: Commit the hero element**
 
 ```bash
-git add media/launch-film/elements/treeboard_node_hero.png scripts/launch-film/generate_element.sh
-git commit -m "feat(launch-film): generate canonical Treeboard pill node hero"
+git add media/launch-film/elements/arboviz_node_hero.png scripts/launch-film/generate_element.sh
+git commit -m "feat(launch-film): generate canonical Arboviz pill node hero"
 ```
 
 ---
@@ -235,43 +235,43 @@ git commit -m "feat(launch-film): generate canonical Treeboard pill node hero"
 ## Task 3: Generate the 4 Reference Angles (Elements 2–5)
 
 **Files:**
-- Create: `media/launch-film/elements/treeboard_node_front.png`
-- Create: `media/launch-film/elements/treeboard_node_quarter_left.png`
-- Create: `media/launch-film/elements/treeboard_node_quarter_right.png`
-- Create: `media/launch-film/elements/treeboard_node_back.png`
+- Create: `media/launch-film/elements/arboviz_node_front.png`
+- Create: `media/launch-film/elements/arboviz_node_quarter_left.png`
+- Create: `media/launch-film/elements/arboviz_node_quarter_right.png`
+- Create: `media/launch-film/elements/arboviz_node_back.png`
 
 - [ ] **Step 1: Generate the front-on reference**
 
 ```bash
 ./scripts/launch-film/generate_element.sh "A single sage-green glowing pill-shaped node viewed directly from the front, perfectly centered, neutral lighting, no rotation. Rounded rectangle 70×26 with bioluminescent sage glow (#b6d4a7). Dark forest void background (#060a08). Cinematic, clean reference shot, 4K." \
-  media/launch-film/elements/treeboard_node_front.png
+  media/launch-film/elements/arboviz_node_front.png
 ```
 
 - [ ] **Step 2: Generate the ¾ left reference**
 
 ```bash
 ./scripts/launch-film/generate_element.sh "A single sage-green glowing pill-shaped node rotated 30 degrees to the left, three-quarter view, soft side-lighting from the right. Rounded rectangle 70×26 with bioluminescent sage glow (#b6d4a7). Dark forest void background (#060a08). Cinematic reference shot, 4K." \
-  media/launch-film/elements/treeboard_node_quarter_left.png
+  media/launch-film/elements/arboviz_node_quarter_left.png
 ```
 
 - [ ] **Step 3: Generate the ¾ right reference**
 
 ```bash
 ./scripts/launch-film/generate_element.sh "A single sage-green glowing pill-shaped node rotated 30 degrees to the right, three-quarter view, soft side-lighting from the left. Rounded rectangle 70×26 with bioluminescent sage glow (#b6d4a7). Dark forest void background (#060a08). Cinematic reference shot, 4K." \
-  media/launch-film/elements/treeboard_node_quarter_right.png
+  media/launch-film/elements/arboviz_node_quarter_right.png
 ```
 
 - [ ] **Step 4: Generate the back reference**
 
 ```bash
 ./scripts/launch-film/generate_element.sh "A single sage-green glowing pill-shaped node viewed from behind, rear three-quarter angle, slight overhead perspective. The text on the pill is not visible from this angle. Rounded rectangle 70×26 with bioluminescent sage glow (#b6d4a7) wrapping around the back edge. Dark forest void background (#060a08). Cinematic reference shot, 4K." \
-  media/launch-film/elements/treeboard_node_back.png
+  media/launch-film/elements/arboviz_node_back.png
 ```
 
 - [ ] **Step 5: Open all 5 references side by side and verify visual consistency**
 
 ```bash
-open media/launch-film/elements/treeboard_node_*.png
+open media/launch-film/elements/arboviz_node_*.png
 ```
 
 The 5 images must share:
@@ -288,8 +288,8 @@ The Elements library upload is done through the Kie.ai web dashboard (no API end
 
 1. Open <https://kie.ai/market/kling/kling-3-0>
 2. Navigate to the Elements panel
-3. Upload all 5 images, tag the set as `treeboard_node`
-4. Note the Element ID returned (will be referenced as `@treeboard_node` in prompts)
+3. Upload all 5 images, tag the set as `arboviz_node`
+4. Note the Element ID returned (will be referenced as `@arboviz_node` in prompts)
 5. Save the Element ID into a local file:
 
 ```bash
@@ -299,7 +299,7 @@ echo "ELEMENT_ID_NODE=<paste-id-here>" > scripts/launch-film/.element-ids
 - [ ] **Step 7: Commit the references**
 
 ```bash
-git add media/launch-film/elements/treeboard_node_*.png
+git add media/launch-film/elements/arboviz_node_*.png
 git commit -m "feat(launch-film): add 4 reference angles for Kling Elements library"
 ```
 
@@ -431,14 +431,14 @@ git commit -m "feat(launch-film): add Kling 3.0 clip generation script"
 **Files:**
 - Create: `media/launch-film/clips/clip-01-first-light.mp4`
 
-**Strategy:** Image-to-video from `treeboard_node_hero.png`. The hero image is uploaded to a temporary URL first (Kling needs a public URL).
+**Strategy:** Image-to-video from `arboviz_node_hero.png`. The hero image is uploaded to a temporary URL first (Kling needs a public URL).
 
 - [ ] **Step 1: Upload the hero image to get a public URL**
 
 Use Kie.ai's file upload endpoint or any temporary host (e.g., `transfer.sh`):
 
 ```bash
-HERO_URL=$(curl -s --upload-file media/launch-film/elements/treeboard_node_hero.png https://transfer.sh/treeboard_node_hero.png)
+HERO_URL=$(curl -s --upload-file media/launch-film/elements/arboviz_node_hero.png https://transfer.sh/arboviz_node_hero.png)
 echo "Hero URL: $HERO_URL"
 echo "HERO_URL=$HERO_URL" >> scripts/launch-film/.element-ids
 ```
@@ -447,7 +447,7 @@ echo "HERO_URL=$HERO_URL" >> scripts/launch-film/.element-ids
 
 ```bash
 source scripts/launch-film/.element-ids
-./scripts/launch-film/generate_clip.sh "@treeboard_node pill-shaped sage-green glowing node materializes from absolute darkness. Energy particles rising slowly around it as it solidifies. Pure black void, no ambient light except the node's own bioluminescent glow. Camera locked, extreme close-up, no movement. Soft cinematic depth of field, film grain, crushed blacks. No motion blur, no warped geometry, no temporal flicker." \
+./scripts/launch-film/generate_clip.sh "@arboviz_node pill-shaped sage-green glowing node materializes from absolute darkness. Energy particles rising slowly around it as it solidifies. Pure black void, no ambient light except the node's own bioluminescent glow. Camera locked, extreme close-up, no movement. Soft cinematic depth of field, film grain, crushed blacks. No motion blur, no warped geometry, no temporal flicker." \
   6 \
   media/launch-film/clips/clip-01-first-light.mp4 \
   pro \
@@ -486,7 +486,7 @@ git commit -m "feat(launch-film): generate Clip 1 — First Light (Scene 1)"
 - [ ] **Step 1: Generate Clip 2**
 
 ```bash
-./scripts/launch-film/generate_clip.sh "@treeboard_node multiple sage-green and amber pill-shaped nodes materializing one by one in rhythmic sequence around a central node. Each pill appears with a soft particle burst, glow expanding outward. Slow orbital arrangement forming like a solar system. Camera pulls back slowly. Pure black void background. Soft sage filaments connecting central node to children as they appear. Cinematic, film grain. Each new pill triggers an ambient crystalline tone as it appears. No motion blur, no inconsistent glow radius." \
+./scripts/launch-film/generate_clip.sh "@arboviz_node multiple sage-green and amber pill-shaped nodes materializing one by one in rhythmic sequence around a central node. Each pill appears with a soft particle burst, glow expanding outward. Slow orbital arrangement forming like a solar system. Camera pulls back slowly. Pure black void background. Soft sage filaments connecting central node to children as they appear. Cinematic, film grain. Each new pill triggers an ambient crystalline tone as it appears. No motion blur, no inconsistent glow radius." \
   9 \
   media/launch-film/clips/clip-02-bloom-a.mp4 \
   pro
@@ -515,7 +515,7 @@ git commit -m "feat(launch-film): generate Clip 2 — Bloom A (Scene 2)"
 - [ ] **Step 1: Generate Clip 3**
 
 ```bash
-./scripts/launch-film/generate_clip.sh "@treeboard_node continuation of pill node bloom — secondary cluster of smaller pills forming further from center, mix of sage green, amber, and clean mint green. Camera continues slow pull-back. More pills materialize, faster cadence now. Edges of frame begin to fill. Pure black void deepening. Sage filament network growing more complex. Soft particle ambience. Cinematic, film grain. Audio layers continue building — multiple crystalline tones overlapping. No warping, no flicker." \
+./scripts/launch-film/generate_clip.sh "@arboviz_node continuation of pill node bloom — secondary cluster of smaller pills forming further from center, mix of sage green, amber, and clean mint green. Camera continues slow pull-back. More pills materialize, faster cadence now. Edges of frame begin to fill. Pure black void deepening. Sage filament network growing more complex. Soft particle ambience. Cinematic, film grain. Audio layers continue building — multiple crystalline tones overlapping. No warping, no flicker." \
   9 \
   media/launch-film/clips/clip-03-bloom-b.mp4 \
   pro
@@ -775,17 +775,17 @@ git commit -m "feat(launch-film): add VO lock-up line"
 ## Task 15: Set Up DaVinci Resolve Project
 
 **Files:**
-- Create: `media/launch-film/davinci/treeboard-launch.drp` (saved manually from DaVinci)
+- Create: `media/launch-film/davinci/arboviz-launch.drp` (saved manually from DaVinci)
 
 - [ ] **Step 1: Open DaVinci Resolve and create a new project**
 
 1. Launch DaVinci Resolve (free version is sufficient)
-2. New Project → name it `treeboard-launch`
+2. New Project → name it `arboviz-launch`
 3. Project Settings:
    - Timeline resolution: 3840×2160 (4K UHD)
    - Frame rate: 24 fps
    - Color space: Rec.709
-4. Save project file to `media/launch-film/davinci/treeboard-launch.drp`
+4. Save project file to `media/launch-film/davinci/arboviz-launch.drp`
 
 - [ ] **Step 2: Import all clips and the VO**
 
@@ -819,7 +819,7 @@ This creates the `.drp` file. Manually copy it if needed:
 ```
 
 ```bash
-git add media/launch-film/davinci/treeboard-launch.drp
+git add media/launch-film/davinci/arboviz-launch.drp
 git commit -m "feat(launch-film): DaVinci project with LUT applied across all clips"
 ```
 
@@ -828,7 +828,7 @@ git commit -m "feat(launch-film): DaVinci project with LUT applied across all cl
 ## Task 16: Assemble the 90s Master
 
 **Files:**
-- Create: `media/launch-film/exports/treeboard-launch-90s-16x9.mp4`
+- Create: `media/launch-film/exports/arboviz-launch-90s-16x9.mp4`
 
 - [ ] **Step 1: Build the timeline in DaVinci**
 
@@ -853,8 +853,8 @@ Total: 90 seconds.
 
 On a black background, add three text layers using the Fusion page:
 
-1. `treeboard` (Fraunces 300, 80pt, color `#e6e6e6`) — centered, appears at 1:16
-2. `pip install treeboard` (JetBrains Mono 400, 24pt, color `#b6d4a7`, on a subtle pill background `rgba(182,212,167,0.06)`) — below wordmark, appears at 1:18
+1. `arboviz` (Fraunces 300, 80pt, color `#e6e6e6`) — centered, appears at 1:16
+2. `pip install arboviz` (JetBrains Mono 400, 24pt, color `#b6d4a7`, on a subtle pill background `rgba(182,212,167,0.06)`) — below wordmark, appears at 1:18
 3. Fade out everything at 1:28, hold black until 1:30
 
 - [ ] **Step 3: Place the VO line**
@@ -875,14 +875,14 @@ Deliver page:
 - Frame rate: 24
 - Quality: Best (target bitrate ~30 Mbps)
 - Audio: AAC 320kbps
-- Output: `media/launch-film/exports/treeboard-launch-90s-16x9.mp4`
+- Output: `media/launch-film/exports/arboviz-launch-90s-16x9.mp4`
 
 Verify size is under 280 MB for Twitter compatibility (it should be — Twitter accepts up to 512 MB for tweet videos).
 
 - [ ] **Step 6: Watch the full master back, end to end**
 
 ```bash
-open media/launch-film/exports/treeboard-launch-90s-16x9.mp4
+open media/launch-film/exports/arboviz-launch-90s-16x9.mp4
 ```
 
 The discipline test: do not skip ahead. Watch all 90 seconds with sound. If anything feels off — fix it now, not after launch.
@@ -890,7 +890,7 @@ The discipline test: do not skip ahead. Watch all 90 seconds with sound. If anyt
 - [ ] **Step 7: Commit**
 
 ```bash
-git add media/launch-film/exports/treeboard-launch-90s-16x9.mp4
+git add media/launch-film/exports/arboviz-launch-90s-16x9.mp4
 git commit -m "feat(launch-film): export 90s master"
 ```
 
@@ -899,11 +899,11 @@ git commit -m "feat(launch-film): export 90s master"
 ## Task 17: Cut the 60s X Version
 
 **Files:**
-- Create: `media/launch-film/exports/treeboard-launch-60s-16x9.mp4`
+- Create: `media/launch-film/exports/arboviz-launch-60s-16x9.mp4`
 
 - [ ] **Step 1: Duplicate the 90s timeline in DaVinci**
 
-Right-click the 90s timeline → "Duplicate" → rename to `treeboard-launch-60s`.
+Right-click the 90s timeline → "Duplicate" → rename to `arboviz-launch-60s`.
 
 - [ ] **Step 2: Apply the 60s cut edits**
 
@@ -929,12 +929,12 @@ Keep "Now you can see it." but compress fade-out.
 Same settings as Task 16 but:
 - Resolution: 1920×1080 (1080p is sufficient for Twitter)
 - Frame rate: 24
-- Output: `media/launch-film/exports/treeboard-launch-60s-16x9.mp4`
+- Output: `media/launch-film/exports/arboviz-launch-60s-16x9.mp4`
 
 - [ ] **Step 4: Watch the 60s cut back**
 
 ```bash
-open media/launch-film/exports/treeboard-launch-60s-16x9.mp4
+open media/launch-film/exports/arboviz-launch-60s-16x9.mp4
 ```
 
 It should feel complete, not amputated. The loop is the point — the last frame fading to black should make you want to watch again immediately.
@@ -942,7 +942,7 @@ It should feel complete, not amputated. The loop is the point — the last frame
 - [ ] **Step 5: Commit**
 
 ```bash
-git add media/launch-film/exports/treeboard-launch-60s-16x9.mp4
+git add media/launch-film/exports/arboviz-launch-60s-16x9.mp4
 git commit -m "feat(launch-film): export 60s X cut"
 ```
 
@@ -951,11 +951,11 @@ git commit -m "feat(launch-film): export 60s X cut"
 ## Task 18: Cut the 9:16 Vertical Version
 
 **Files:**
-- Create: `media/launch-film/exports/treeboard-launch-60s-9x16.mp4`
+- Create: `media/launch-film/exports/arboviz-launch-60s-9x16.mp4`
 
 - [ ] **Step 1: Duplicate the 60s timeline**
 
-In DaVinci: duplicate `treeboard-launch-60s` → rename to `treeboard-launch-60s-vertical`.
+In DaVinci: duplicate `arboviz-launch-60s` → rename to `arboviz-launch-60s-vertical`.
 
 - [ ] **Step 2: Change timeline resolution to 1080×1920**
 
@@ -969,7 +969,7 @@ For each clip on the timeline:
 3. Position: center on the primary subject (the pill cluster or central node)
 4. For Scenes 4–5 where subjects shift: keyframe the position to track the focal pill
 
-The Treeboard pill shape is wide (16:9-ish per pill), so vertical framing focuses on stacked pills rather than horizontal spread. Lean into this.
+The Arboviz pill shape is wide (16:9-ish per pill), so vertical framing focuses on stacked pills rather than horizontal spread. Lean into this.
 
 - [ ] **Step 4: Re-frame typography**
 
@@ -980,12 +980,12 @@ Move all text elements to vertical center. Resize as needed — Fraunces 80pt be
 - Format: MP4 H.264
 - Resolution: 1080×1920
 - Frame rate: 24
-- Output: `media/launch-film/exports/treeboard-launch-60s-9x16.mp4`
+- Output: `media/launch-film/exports/arboviz-launch-60s-9x16.mp4`
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add media/launch-film/exports/treeboard-launch-60s-9x16.mp4
+git add media/launch-film/exports/arboviz-launch-60s-9x16.mp4
 git commit -m "feat(launch-film): export 9:16 vertical cut"
 ```
 
@@ -996,9 +996,9 @@ git commit -m "feat(launch-film): export 9:16 vertical cut"
 - [ ] **Step 1: Present all three cuts to Sir**
 
 ```bash
-open media/launch-film/exports/treeboard-launch-90s-16x9.mp4
-open media/launch-film/exports/treeboard-launch-60s-16x9.mp4
-open media/launch-film/exports/treeboard-launch-60s-9x16.mp4
+open media/launch-film/exports/arboviz-launch-90s-16x9.mp4
+open media/launch-film/exports/arboviz-launch-60s-16x9.mp4
+open media/launch-film/exports/arboviz-launch-60s-9x16.mp4
 ```
 
 Wait for explicit Sir approval before proceeding. If any cut needs changes, return to the relevant task and re-export.
@@ -1022,16 +1022,16 @@ git push origin launch-film-v1
 Write `media/launch-film/launch-thread.md`:
 
 ```markdown
-# Treeboard Launch Thread (Twitter / X)
+# Arboviz Launch Thread (Twitter / X)
 
 ## Tweet 1 — The Film
-[Attach: treeboard-launch-60s-16x9.mp4]
+[Attach: arboviz-launch-60s-16x9.mp4]
 
-treeboard
-pip install treeboard
+arboviz
+pip install arboviz
 
 ## Tweet 2 — The Meta-Story
-I built treeboard for vibe coders — devs who code with AI. So I launched it with AI too.
+I built arboviz for vibe coders — devs who code with AI. So I launched it with AI too.
 
 Film: Kling 3.0 via Kie.ai. Score: Kling native audio. VO: Kie.ai voice generation. Cut: DaVinci Resolve.
 
@@ -1044,12 +1044,12 @@ Code is the most complex thing humans build. And we cannot see it.
 
 We navigate our own codebases by memory, by grep, by intuition — like sailing without a map.
 
-Treeboard makes your code visible. As a living, spatial thing. For the first time.
+Arboviz makes your code visible. As a living, spatial thing. For the first time.
 
 ## Tweet 4 — The CTA
-Try it: pip install treeboard
-GitHub: github.com/heidar-droid/treeboard
-PyPI: pypi.org/project/treeboard
+Try it: pip install arboviz
+GitHub: github.com/heidar-droid/arboviz
+PyPI: pypi.org/project/arboviz
 ```
 
 - [ ] **Step 2: Commit the thread**
@@ -1065,7 +1065,7 @@ git commit -m "docs(launch-film): launch tweet thread copy"
 
 - [ ] **Step 1: Post Tweet 1 with the 60s cut attached**
 
-Open Twitter / X. Upload `treeboard-launch-60s-16x9.mp4`. Add the body from Tweet 1. Post.
+Open Twitter / X. Upload `arboviz-launch-60s-16x9.mp4`. Add the body from Tweet 1. Post.
 
 - [ ] **Step 2: Reply with Tweet 2, 3, 4 in sequence**
 
@@ -1090,14 +1090,14 @@ Go to producthunt.com → Submit a product. Target launch date: within 7 days of
 
 - [ ] **Step 2: Upload the 90s master as the hero video**
 
-Upload `treeboard-launch-90s-16x9.mp4` as the primary product video.
+Upload `arboviz-launch-90s-16x9.mp4` as the primary product video.
 
 - [ ] **Step 3: Add product copy**
 
-Tagline: `treeboard — your codebase, finally visible`
+Tagline: `arboviz — your codebase, finally visible`
 
 Description (max 260 chars):
-> A cinematic pyramid visualizer for any directory on disk. Run `treeboard .` in any project — get a browser canvas where every file is a glowing, draggable pill. AI context builder, fuzzy search, git mode, live preview. pip install treeboard.
+> A cinematic pyramid visualizer for any directory on disk. Run `arboviz .` in any project — get a browser canvas where every file is a glowing, draggable pill. AI context builder, fuzzy search, git mode, live preview. pip install arboviz.
 
 First comment (seeded with the meta-story from Tweet 2 of the launch thread).
 
@@ -1107,17 +1107,17 @@ When PH goes live, quote-tweet the original Twitter thread with the PH link.
 
 ---
 
-## Task 23: Update treeboard Website Hero
+## Task 23: Update arboviz Website Hero
 
 **Files:**
-- Modify: `treeboard.dev/index.html` (or wherever the landing page lives — TBD if landing page exists)
+- Modify: `arboviz.dev/index.html` (or wherever the landing page lives — TBD if landing page exists)
 
 - [ ] **Step 1: Add the 90s master as hero video**
 
 If a landing page exists:
-- Embed `treeboard-launch-90s-16x9.mp4` as autoplay, muted, looping above the fold
+- Embed `arboviz-launch-90s-16x9.mp4` as autoplay, muted, looping above the fold
 - Below the video: tagline "Your codebase. Finally visible."
-- CTA below tagline: `pip install treeboard` (copyable on click)
+- CTA below tagline: `pip install arboviz` (copyable on click)
 
 If no landing page exists yet: this task is deferred. Note as follow-up in `tasks/todo.md`.
 
@@ -1130,7 +1130,7 @@ If no landing page exists yet: this task is deferred. Note as follow-up in `task
 Append a `launch-metrics.md` to the launch-film directory with:
 
 ```markdown
-# Treeboard Launch Metrics — 7 Day Post-Launch Report
+# Arboviz Launch Metrics — 7 Day Post-Launch Report
 
 ## Twitter / X
 - 3-second retention: X%
@@ -1151,7 +1151,7 @@ Append a `launch-metrics.md` to the launch-film directory with:
 - Issues opened: X
 
 ## PyPI
-- `pip install treeboard` count: X
+- `pip install arboviz` count: X
 - Unique installs: X (if obtainable)
 
 ## Notable shares

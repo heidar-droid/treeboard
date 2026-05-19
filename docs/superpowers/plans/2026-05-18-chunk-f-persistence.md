@@ -1,10 +1,10 @@
-# Treeboard — Chunk F: Persistence (Bookmarks, Notes, Saved Views, Snapshot)
+# Arboviz — Chunk F: Persistence (Bookmarks, Notes, Saved Views, Snapshot)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Wire four persistence features whose backends already exist — Bookmarks (star on pill, Pin Bar sync), File Notes (textarea in popover), Saved Views (⌘K palette), and Snapshot/Checkpoint (camera flash + toast) — into the frontend.
 
-**Architecture:** One new ES module (`bookmarks.js`) + targeted modifications to `popover.js`, `palette.js`, `control-center.js`, `treeboard.css`, and `treeboard.js`. All four backends (`/api/bookmarks`, `/api/notes`, `/api/views`, `/api/snapshot`) are fully implemented and passing tests. No backend changes required.
+**Architecture:** One new ES module (`bookmarks.js`) + targeted modifications to `popover.js`, `palette.js`, `control-center.js`, `arboviz.css`, and `arboviz.js`. All four backends (`/api/bookmarks`, `/api/notes`, `/api/views`, `/api/snapshot`) are fully implemented and passing tests. No backend changes required.
 
 **Tech Stack:** Vanilla ES modules, SVG DOM manipulation (bookmarks star), CSS transitions, Fetch API.
 
@@ -29,18 +29,18 @@
 
 | Action | File |
 |---|---|
-| **Create** | `src/treeboard/static/bookmarks.js` |
-| **Modify** | `src/treeboard/static/popover.js` — inject notes section in `openFor()` |
-| **Modify** | `src/treeboard/static/palette.js` — add saved views + "Save view as" to Actions tab |
-| **Modify** | `src/treeboard/static/control-center.js` — add snapshot button + flash overlay |
-| **Modify** | `src/treeboard/static/treeboard.css` — append Chunk F CSS block |
-| **Modify** | `src/treeboard/static/treeboard.js` — import + wire bookmarks |
+| **Create** | `src/arboviz/static/bookmarks.js` |
+| **Modify** | `src/arboviz/static/popover.js` — inject notes section in `openFor()` |
+| **Modify** | `src/arboviz/static/palette.js` — add saved views + "Save view as" to Actions tab |
+| **Modify** | `src/arboviz/static/control-center.js` — add snapshot button + flash overlay |
+| **Modify** | `src/arboviz/static/arboviz.css` — append Chunk F CSS block |
+| **Modify** | `src/arboviz/static/arboviz.js` — import + wire bookmarks |
 
 ---
 
 ## Task 1 — `bookmarks.js`
 
-**File:** Create `src/treeboard/static/bookmarks.js`
+**File:** Create `src/arboviz/static/bookmarks.js`
 
 ```js
 let _bookmarks = new Set();
@@ -138,7 +138,7 @@ function _syncPinBar() {
     chip.title = path;
     chip.addEventListener("click", () => {
       const node = window.__tb?.nodeIndex?.get(path);
-      if (node) window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } }));
+      if (node) window.dispatchEvent(new CustomEvent("arboviz:open", { detail: { node } }));
     });
     chip.classList.add("landed");
     bar.appendChild(chip);
@@ -166,7 +166,7 @@ Commit: `feat(frontend): add bookmarks module — star on pill, pin bar sync, pe
 
 ## Task 2 — Notes in `popover.js`
 
-**File:** Modify `src/treeboard/static/popover.js`
+**File:** Modify `src/arboviz/static/popover.js`
 
 ### Change A — Add `_injectNotes` function at the bottom of the file (before `redrawLeader`)
 
@@ -233,7 +233,7 @@ Commit: `feat(frontend): add file notes textarea in popover`
 
 ## Task 3 — Saved Views in `palette.js`
 
-**File:** Modify `src/treeboard/static/palette.js`
+**File:** Modify `src/arboviz/static/palette.js`
 
 ### Change A — Add `_viewsCache` module variable at the top (after the `PROMPT_TEMPLATES` constant)
 
@@ -400,7 +400,7 @@ Commit: `feat(frontend): add saved views to palette — Save view as / Load view
 
 ## Task 4 — Snapshot in `control-center.js`
 
-**File:** Modify `src/treeboard/static/control-center.js`
+**File:** Modify `src/arboviz/static/control-center.js`
 
 ### Change A — Add `_buildSnapFlash()` function (add after `_buildFlashOverlay`)
 
@@ -515,7 +515,7 @@ Commit: `feat(frontend): add snapshot button to Control Center with camera flash
 
 ## Task 5 — CSS additions
 
-**File:** Append to `src/treeboard/static/treeboard.css`
+**File:** Append to `src/arboviz/static/arboviz.css`
 
 ```css
 /* ============================================================
@@ -625,9 +625,9 @@ Commit: `feat(frontend): add Chunk F CSS — bookmarks, notes, views, snapshot`
 
 ---
 
-## Task 6 — Wire `treeboard.js`
+## Task 6 — Wire `arboviz.js`
 
-**File:** Modify `src/treeboard/static/treeboard.js`
+**File:** Modify `src/arboviz/static/arboviz.js`
 
 ### Change A — Add import after the `setupContentSearch` import line
 
@@ -670,4 +670,4 @@ Replace with:
   if (state.mode === "git") {
 ```
 
-Commit: `feat(frontend): wire bookmarks into treeboard — setup + redraw sync`
+Commit: `feat(frontend): wire bookmarks into arboviz — setup + redraw sync`

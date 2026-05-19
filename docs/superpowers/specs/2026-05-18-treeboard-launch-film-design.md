@@ -1,25 +1,25 @@
-# Treeboard Launch Film — "In the Beginning"
+# Arboviz Launch Film — "In the Beginning"
 
 **Date:** 2026-05-18
 **Status:** Approved (concept), Pending (production)
 **Owner:** Sir (Heidar)
 **Target launch:** This week (2026-05-18 to 2026-05-24)
 **Primary distribution:** Twitter / X launch post
-**Secondary distribution:** Product Hunt, treeboard website hero, YouTube
+**Secondary distribution:** Product Hunt, arboviz website hero, YouTube
 
 ---
 
 ## 1. Concept
 
-A 90-second creation myth for Treeboard. No product demo. No feature list. No narration except one whispered line at the lock-up. The film starts in absolute darkness, materializes one glowing pill node, and builds — through six scenes — into a full constellation of code made visible, then ends in silence with a single statement.
+A 90-second creation myth for Arboviz. No product demo. No feature list. No narration except one whispered line at the lock-up. The film starts in absolute darkness, materializes one glowing pill node, and builds — through six scenes — into a full constellation of code made visible, then ends in silence with a single statement.
 
 ### 1.1 The thesis (philosophical inversion)
 
-The film does not say "Treeboard makes your code beautiful." It says:
+The film does not say "Arboviz makes your code beautiful." It says:
 
 > *This is what your code always looked like — before text editors compressed it into lines.*
 
-The visualization is the original reality. The text file is the impoverished representation. This inversion (from Buck's approach for Nothing) reframes Treeboard from "feature on top of a code editor" to "the way code was always meant to be seen." It is felt in the visual language, not stated.
+The visualization is the original reality. The text file is the impoverished representation. This inversion (from Buck's approach for Nothing) reframes Arboviz from "feature on top of a code editor" to "the way code was always meant to be seen." It is felt in the visual language, not stated.
 
 ### 1.2 The one line
 
@@ -42,7 +42,7 @@ Whispered. Intimate. The only human voice. Lands in 3–4 seconds of black silen
 
 ## 2. Visual Language
 
-The film is built in Treeboard's exact design language — no reinvention. Source: `src/treeboard/static/treeboard.css`.
+The film is built in Arboviz's exact design language — no reinvention. Source: `src/arboviz/static/arboviz.css`.
 
 ### 2.1 Palette
 
@@ -62,8 +62,8 @@ The film is built in Treeboard's exact design language — no reinvention. Sourc
 ### 2.2 Typography
 
 - Wordmark + cinematic titles: **Fraunces** (lightweight 300, italic for emphasis)
-- Technical labels + monospace text: **JetBrains Mono** (treeboard's actual code font)
-- The on-pill text inside the materializing nodes: **Geist Mono** (treeboard's UI font)
+- Technical labels + monospace text: **JetBrains Mono** (arboviz's actual code font)
+- The on-pill text inside the materializing nodes: **Geist Mono** (arboviz's UI font)
 
 ### 2.3 Texture
 
@@ -139,15 +139,15 @@ The film is built in Treeboard's exact design language — no reinvention. Sourc
 
 ### Scene 6 — The Lock-Up (0:78 – 0:90)
 
-**Visual:** Pure black. 1.5 seconds of silence. Wordmark fades in (Fraunces, 300 weight): **treeboard**. Below it, smaller: `pip install treeboard`. The VO line is spoken.
+**Visual:** Pure black. 1.5 seconds of silence. Wordmark fades in (Fraunces, 300 weight): **arboviz**. Below it, smaller: `pip install arboviz`. The VO line is spoken.
 
 **Camera:** Static. Centered. Held for the full 12 seconds.
 
 **Audio:** Single cello note returns from Scene 1. The VO line whispered: *"Your code has always been this beautiful."* Then silence. Fade to black.
 
 **On-screen text:**
-- `treeboard` (Fraunces 300, 32px)
-- `pip install treeboard` (JetBrains Mono, 11px, sage on dark sage-tinted pill)
+- `arboviz` (Fraunces 300, 32px)
+- `pip install arboviz` (JetBrains Mono, 11px, sage on dark sage-tinted pill)
 - *"your codebase · finally visible"* (optional micro-tag below name)
 
 ---
@@ -156,7 +156,7 @@ The film is built in Treeboard's exact design language — no reinvention. Sourc
 
 ### 4.1 90-second master (16:9)
 
-- **Distribution:** Product Hunt, treeboard website hero (autoplay muted, looping), YouTube
+- **Distribution:** Product Hunt, arboviz website hero (autoplay muted, looping), YouTube
 - **Full storyboard** as specified above (Scenes 1–6)
 - **Aspect ratio:** 16:9
 
@@ -197,15 +197,15 @@ Day 5 → Final review, 60s X cut, vertical 9:16 cut, export
 
 **Tool:** Nano Banana (via Kie.ai)
 
-**Output:** 5 reference images defining the canonical Treeboard pill node.
+**Output:** 5 reference images defining the canonical Arboviz pill node.
 
 | Asset | Description | Use |
 |---|---|---|
-| `treeboard_node_hero.png` | The canonical sage pill, front-on, full glow | Reference for all generations |
-| `treeboard_node_front.png` | Pill, front-on, neutral lighting | Element library angle 1 |
-| `treeboard_node_quarter_left.png` | Pill, ¾ left rotation | Element library angle 2 |
-| `treeboard_node_quarter_right.png` | Pill, ¾ right rotation | Element library angle 3 |
-| `treeboard_node_back.png` | Pill, back / over-shoulder view | Element library angle 4 |
+| `arboviz_node_hero.png` | The canonical sage pill, front-on, full glow | Reference for all generations |
+| `arboviz_node_front.png` | Pill, front-on, neutral lighting | Element library angle 1 |
+| `arboviz_node_quarter_left.png` | Pill, ¾ left rotation | Element library angle 2 |
+| `arboviz_node_quarter_right.png` | Pill, ¾ right rotation | Element library angle 3 |
+| `arboviz_node_back.png` | Pill, back / over-shoulder view | Element library angle 4 |
 
 **Nano Banana prompt template (for the hero):**
 
@@ -219,7 +219,7 @@ Film grain overlay. Cinematic, photorealistic, depth of field, 4K. No human.
 No interface. No screen. Just the pill in void.
 ```
 
-**Then upload all 5 images to the Kling Elements library via Kie.ai dashboard. Tag as `@treeboard_node`.**
+**Then upload all 5 images to the Kling Elements library via Kie.ai dashboard. Tag as `@arboviz_node`.**
 
 ### 5.3 Step 2 — Generate the Scene 3 galaxy key frame (Day 1, afternoon)
 
@@ -248,7 +248,7 @@ god's-eye composition.
 - `sound`: `true` (native audio generation)
 - `mode`: `pro` or `4K` (for hero shots) / `std` (for transition clips)
 - `aspect_ratio`: `16:9`
-- All prompts reference `@treeboard_node` from the Element library
+- All prompts reference `@arboviz_node` from the Element library
 - Lock seed value from first approved generation, reuse across all subsequent clips
 - Negative prompts: *"No motion blur on nodes. No inconsistent glow radius. No warped geometry. No temporal flicker on solid forms. No human faces. No interfaces or screens."*
 
@@ -256,7 +256,7 @@ god's-eye composition.
 
 | Clip | Scene | Duration | Mode | Strategy |
 |---|---|---|---|---|
-| 1 | Scene 1 | 6s | pro | Image-to-video from `treeboard_node_hero.png` |
+| 1 | Scene 1 | 6s | pro | Image-to-video from `arboviz_node_hero.png` |
 | 2 | Scene 2 part 1 | 9s | pro | Multi-shot, text-to-video |
 | 3 | Scene 2 part 2 | 9s | pro | Multi-shot continuation |
 | 4 | Scene 3 | 12s | 4K | Image-to-video from `galaxy_keyframe.png` |
@@ -327,11 +327,11 @@ The film is one half of the launch. The launch post is the other half. Both must
 ### 7.1 The tweet thread (Twitter / X launch day)
 
 **Tweet 1 (the film):** The 60s X cut. No text other than:
-> *treeboard*
-> pip install treeboard
+> *arboviz*
+> pip install arboviz
 
 **Tweet 2 (the meta-story):** This is what makes the launch viral.
-> *I built treeboard for vibe coders — devs who code with AI. So I launched it with AI too.*
+> *I built arboviz for vibe coders — devs who code with AI. So I launched it with AI too.*
 > *Film: Kling 3.0 via Kie.ai. Score: Kling native audio. VO: Kie.ai voice generation. Cut: DaVinci Resolve.*
 > *9 clips. 5 days. Zero stock footage. Zero human VO.*
 > *This is the first vibe-coded launch film I've seen for a vibe-coding tool.*
@@ -339,12 +339,12 @@ The film is one half of the launch. The launch post is the other half. Both must
 **Tweet 3 (the why):** The thesis.
 > *Code is the most complex thing humans build. And we cannot see it.*
 > *We navigate our own codebases by memory, by grep, by intuition — like sailing without a map.*
-> *Treeboard makes your code visible. As a living, spatial thing. For the first time.*
+> *Arboviz makes your code visible. As a living, spatial thing. For the first time.*
 
 **Tweet 4 (the CTA):**
-> *Try it: pip install treeboard*
-> *GitHub: github.com/heidar-droid/treeboard*
-> *PyPI: pypi.org/project/treeboard*
+> *Try it: pip install arboviz*
+> *GitHub: github.com/heidar-droid/arboviz*
+> *PyPI: pypi.org/project/arboviz*
 
 ### 7.2 Product Hunt launch (within 7 days of Twitter)
 
@@ -353,12 +353,12 @@ The film is one half of the launch. The launch post is the other half. Both must
 - Hunter pre-arranged (Sir's network)
 - Comment seeded with the meta-story from tweet 2
 
-### 7.3 Website hero (treeboard landing page)
+### 7.3 Website hero (arboviz landing page)
 
 - 90s master, autoplay muted, looping
 - Above the fold, full bleed
 - Tagline below: *"Your codebase. Finally visible."*
-- CTA: `pip install treeboard`
+- CTA: `pip install arboviz`
 
 ---
 
@@ -386,7 +386,7 @@ Saturday launch favors developer audiences (less work-day noise). Monday launch 
 | Kling native audio doesn't fit the scene | Medium | Re-generate the clip (audio regenerates with each video gen). If still wrong, accept the closest match — fully AI is the brand. |
 | VO line sounds robotic | Medium | Test 3–5 Kie.ai voice options before committing. Test in context of the film, not in isolation. If all fail, fall back to Sir recording a voice memo. |
 | Production runs past Friday | Low | Each day has buffer — clips can be regenerated overnight. Worst case, launch shifts to following Monday. |
-| Film looks generic | Low (with Elements library) | The Treeboard pill shape is unique. The dark forest palette is unique. As long as Elements is used correctly, the film will not look like stock "glowing network" content. |
+| Film looks generic | Low (with Elements library) | The Arboviz pill shape is unique. The dark forest palette is unique. As long as Elements is used correctly, the film will not look like stock "glowing network" content. |
 | Twitter caps video at 2:20 or rejects upload | None | Both cuts are under 2:20. Master is well under Twitter's 512MB limit. |
 
 ---
@@ -399,7 +399,7 @@ This is a launch film, not an ad. Success is measured by:
 2. **Replay rate** ≥ 15% (looping mechanic working)
 3. **PH upvotes** ≥ 500 in launch day (cinematic films drive 2.7× the baseline)
 4. **GitHub stars in first 7 days** ≥ 100 (signal of developer interest, not just attention)
-5. **`pip install treeboard` downloads** in first 7 days ≥ 500 (actual adoption)
+5. **`pip install arboviz` downloads** in first 7 days ≥ 500 (actual adoption)
 6. **Qualitative:** at least 3 unprompted shares from prominent devtools / motion design accounts
 
 If 3-second retention is below 50%, the opening hook failed. Re-cut Scene 1 with even more silence and a more dramatic first pill reveal.
@@ -414,7 +414,7 @@ If 3-second retention is below 50%, the opening hook failed. Re-cut Scene 1 with
 - No company logo other than the wordmark at lock-up
 - No background music score (Kling native audio only)
 - No subtitles on the VO line (it's whispered, intimate, intentional)
-- No "What is treeboard?" explainer
+- No "What is arboviz?" explainer
 
 ---
 
@@ -428,7 +428,7 @@ If 3-second retention is below 50%, the opening hook failed. Re-cut Scene 1 with
 
 ## 13. Reference Files
 
-- Treeboard design system: `src/treeboard/static/treeboard.css`
+- Arboviz design system: `src/arboviz/static/arboviz.css`
 - Feature spec (what the product does): `docs/superpowers/specs/2026-05-18-vibe-coder-features-design.md`
 - Visual companion brainstorm artifacts: `.superpowers/brainstorm/324-1779075962/content/*.html`
 - Atlas research brief: agent transcript at `/tmp/claude-501/.../tasks/a9e39999965d86205.output` (key findings already integrated into Sections 1.1, 3.1, 4.2, 5.4, 7.1, 10)

@@ -1,10 +1,10 @@
-# Treeboard — Chunk E: Visual Modes (Heatmap, Import Graph, Content Search)
+# Arboviz — Chunk E: Visual Modes (Heatmap, Import Graph, Content Search)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Implement three remaining canvas modes — Heatmap (recency coloring), Import Graph (dependency edges + dead code radar), and Content Search (in-file grep with pill highlighting) — plus wire all three into the Control Center mode buttons and search icon.
 
-**Architecture:** Three new ES modules (`heatmap.js`, `graph-overlay.js`, `search-content.js`), one CSS block appended to `treeboard.css`, one wiring change in `treeboard.js`. Each mode module follows the same pattern as `git-overlay.js`: subscribe to `state`, react on mode change, use `data-*` attributes + CSS attribute selectors for visual changes. Search is triggered by the existing `#cc-icon-search` placeholder in the Control Center.
+**Architecture:** Three new ES modules (`heatmap.js`, `graph-overlay.js`, `search-content.js`), one CSS block appended to `arboviz.css`, one wiring change in `arboviz.js`. Each mode module follows the same pattern as `git-overlay.js`: subscribe to `state`, react on mode change, use `data-*` attributes + CSS attribute selectors for visual changes. Search is triggered by the existing `#cc-icon-search` placeholder in the Control Center.
 
 **Tech Stack:** Vanilla ES modules, SVG DOM manipulation, Fetch API, CSS attribute selectors + keyframe animations.
 
@@ -14,17 +14,17 @@
 
 | Action | File |
 |---|---|
-| **Create** | `src/treeboard/static/heatmap.js` |
-| **Create** | `src/treeboard/static/graph-overlay.js` |
-| **Create** | `src/treeboard/static/search-content.js` |
-| **Modify** | `src/treeboard/static/treeboard.css` — append heat, graph, search CSS |
-| **Modify** | `src/treeboard/static/treeboard.js` — import + wire all three modules |
+| **Create** | `src/arboviz/static/heatmap.js` |
+| **Create** | `src/arboviz/static/graph-overlay.js` |
+| **Create** | `src/arboviz/static/search-content.js` |
+| **Modify** | `src/arboviz/static/arboviz.css` — append heat, graph, search CSS |
+| **Modify** | `src/arboviz/static/arboviz.js` — import + wire all three modules |
 
 ---
 
 ## Task 1 — `heatmap.js`
 
-**File:** Create `src/treeboard/static/heatmap.js`
+**File:** Create `src/arboviz/static/heatmap.js`
 
 Heat levels based on `node.mtime` (Unix seconds, already in tree data via scan.py):
 - Level 0: modified < 1 hour ago → brightest sage glow + slow pulse
@@ -83,7 +83,7 @@ Commit: `feat(frontend): add heatmap module (recency coloring by mtime)`
 
 ## Task 2 — `graph-overlay.js`
 
-**File:** Create `src/treeboard/static/graph-overlay.js`
+**File:** Create `src/arboviz/static/graph-overlay.js`
 
 Fetches `/api/imports`, draws SVG `<line>` edges in a dedicated `<g id="graph-edges">` group inserted before `#nodes`. Dead code = files with zero inbound edges → `data-dead-code` attribute.
 
@@ -207,7 +207,7 @@ Commit: `feat(frontend): add import graph overlay module (edges + dead code rada
 
 ## Task 3 — `search-content.js`
 
-**File:** Create `src/treeboard/static/search-content.js`
+**File:** Create `src/arboviz/static/search-content.js`
 
 Attaches to the `#cc-icon-search` button in the Control Center. Shows a search bar overlay above the CC bar. As the user types (debounced 300ms), calls `/api/search?q=X`, marks matching pills with `data-search-hits`, dims non-matching pills.
 
@@ -320,7 +320,7 @@ Commit: `feat(frontend): add content search module (grep overlay with pill highl
 
 ## Task 4 — CSS additions
 
-**File:** Append to `src/treeboard/static/treeboard.css`
+**File:** Append to `src/arboviz/static/arboviz.css`
 
 ```css
 /* ============================================================
@@ -440,9 +440,9 @@ Commit: `feat(frontend): add heatmap, graph, search CSS`
 
 ---
 
-## Task 5 — Wire `treeboard.js`
+## Task 5 — Wire `arboviz.js`
 
-**File:** Modify `src/treeboard/static/treeboard.js`
+**File:** Modify `src/arboviz/static/arboviz.js`
 
 ### Change A — Add imports after `git-overlay.js` import line
 
@@ -467,4 +467,4 @@ import { setupContentSearch } from "/static/search-content.js";
   if (state.mode === "graph") redrawGraph(board);
 ```
 
-Commit: `feat(frontend): wire heatmap, graph overlay, content search into treeboard`
+Commit: `feat(frontend): wire heatmap, graph overlay, content search into arboviz`

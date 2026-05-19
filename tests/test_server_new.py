@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from treeboard.server import build_app
+from arboviz.server import build_app
 
 
 def test_git_status_endpoint(tmp_tree):
@@ -64,7 +64,7 @@ def test_snapshot_creates_files(tmp_tree):
     assert r.status_code == 200
     data = r.json()
     assert "snapshot_id" in data
-    snap_dir = tmp_tree / ".treeboard" / "snapshots" / data["snapshot_id"]
+    snap_dir = tmp_tree / ".arboviz" / "snapshots" / data["snapshot_id"]
     assert snap_dir.is_dir()
 
 

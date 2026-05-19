@@ -94,7 +94,7 @@ function _syncPinBar() {
     chip.addEventListener("click", async () => {
       const node = window.__tb?.nodeIndex?.get(path);
       if (node) {
-        window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } }));
+        window.dispatchEvent(new CustomEvent("arboviz:open", { detail: { node } }));
       } else {
         const { showToast } = await import("/static/control-center.js");
         showToast("File not visible — expand its folder first");

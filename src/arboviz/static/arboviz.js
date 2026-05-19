@@ -75,7 +75,7 @@ async function load() {
   setupProjectTabs();
   setupPalette(
     tree,
-    node => window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } })),
+    node => window.dispatchEvent(new CustomEvent("arboviz:open", { detail: { node } })),
     node => {
       // Ensure all ancestor folders are expanded so the target is visible
       const ancestors = [];
@@ -305,14 +305,14 @@ function wireInteractions(nodes) {
         // root is informational; do nothing on click
       } else {
         // file → open popover, no camera move
-        window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } }));
+        window.dispatchEvent(new CustomEvent("arboviz:open", { detail: { node } }));
       }
     });
 
     g.addEventListener("dblclick", e => {
       e.stopPropagation();
       // double-click always opens the popover (folders show meta)
-      window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } }));
+      window.dispatchEvent(new CustomEvent("arboviz:open", { detail: { node } }));
     });
   });
   wireMultiselect(board, nodeIndex);
@@ -325,7 +325,7 @@ window.addEventListener("keydown", e => {
   if (e.key === "Escape") {
     state.clearSelection();
     syncSelectionHighlight(board, state.selection);
-    window.dispatchEvent(new CustomEvent("treeboard:escape"));
+    window.dispatchEvent(new CustomEvent("arboviz:escape"));
     return;
   }
   if ((e.metaKey || e.ctrlKey) && e.key === "0") {

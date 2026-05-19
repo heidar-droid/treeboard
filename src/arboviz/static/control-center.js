@@ -57,7 +57,7 @@ function _buildPinBar(treeRoot) {
     chip.textContent = node.name;
     chip.title = node.path;
     chip.addEventListener("click", () => {
-      window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } }));
+      window.dispatchEvent(new CustomEvent("arboviz:open", { detail: { node } }));
     });
     bar.appendChild(chip);
     setTimeout(() => chip.classList.add("landed"), 1600 + i * 80);

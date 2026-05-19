@@ -4,7 +4,7 @@
 
 **Goal:** Replace the current single-size popover with a five-state model (Chip / Compact / Standard / Expanded / Full), add a cycle/close header chrome, support freeform edge/corner resize with soft-snap to named states, and establish the CSS-token foundation for the upcoming light-mode theme.
 
-**Architecture:** The single-file `popover.js` is split into a `popover/` module directory. A `PopoverModel` registry (Map keyed by uuid) replaces the current top-level `popovers` array. Named states map to `{w, h}` size definitions; resize uses pointer events on edge/corner grab handles; soft-snap compares the released size against named-state boundaries with a 12px threshold. Top-level `popover.js` becomes a thin re-export shim so callers in `treeboard.js` keep working unchanged.
+**Architecture:** The single-file `popover.js` is split into a `popover/` module directory. A `PopoverModel` registry (Map keyed by uuid) replaces the current top-level `popovers` array. Named states map to `{w, h}` size definitions; resize uses pointer events on edge/corner grab handles; soft-snap compares the released size against named-state boundaries with a 12px threshold. Top-level `popover.js` becomes a thin re-export shim so callers in `arboviz.js` keep working unchanged.
 
 **Tech Stack:** Vanilla ES modules (no bundler), CSS custom properties for theming, native `pointerdown`/`pointermove`/`pointerup` for resize, `node --test` for pure-function unit tests, Playwright (via the `webapp-testing` skill) for browser verification.
 
@@ -18,24 +18,24 @@
 ## File Structure
 
 **Created:**
-- `src/treeboard/static/popover/index.js` — public API entry: `setupPopovers`, `openFor`, `closeAll`
-- `src/treeboard/static/popover/registry.js` — `PopoverModel` map + CRUD
-- `src/treeboard/static/popover/sizes.js` — five named states with dimensions
-- `src/treeboard/static/popover/chrome.js` — header HTML and button handlers
-- `src/treeboard/static/popover/resize.js` — edge/corner pointer logic + soft-snap math
-- `src/treeboard/static/popover/body.js` — extracted file body renderers (markdown/code/env/image/pdf/csv/svg/too_large/error/dir)
-- `src/treeboard/static/popover/notes.js` — extracted notes textarea
-- `src/treeboard/static/popover/diff.js` — extracted git diff tab
-- `src/treeboard/static/popover/positioning.js` — extracted `positionPopover` logic
-- `src/treeboard/static/popover/theme.js` — theme toggle (localStorage + `data-theme` attribute)
+- `src/arboviz/static/popover/index.js` — public API entry: `setupPopovers`, `openFor`, `closeAll`
+- `src/arboviz/static/popover/registry.js` — `PopoverModel` map + CRUD
+- `src/arboviz/static/popover/sizes.js` — five named states with dimensions
+- `src/arboviz/static/popover/chrome.js` — header HTML and button handlers
+- `src/arboviz/static/popover/resize.js` — edge/corner pointer logic + soft-snap math
+- `src/arboviz/static/popover/body.js` — extracted file body renderers (markdown/code/env/image/pdf/csv/svg/too_large/error/dir)
+- `src/arboviz/static/popover/notes.js` — extracted notes textarea
+- `src/arboviz/static/popover/diff.js` — extracted git diff tab
+- `src/arboviz/static/popover/positioning.js` — extracted `positionPopover` logic
+- `src/arboviz/static/popover/theme.js` — theme toggle (localStorage + `data-theme` attribute)
 - `tests/static/popover/test_sizes.mjs` — unit tests for size definitions + soft-snap math
 - `tests/static/popover/test_registry.mjs` — unit tests for registry CRUD
 
 **Modified:**
-- `src/treeboard/static/popover.js` — becomes thin re-export from `popover/index.js`
-- `src/treeboard/static/treeboard.css` — extract hex colors to CSS tokens under `:root` and `[data-theme="light"]`; add new styles for resize handles, named-state size classes, cycle button
-- `src/treeboard/static/treeboard.js` — no functional change (calls into popover still go through same `setupPopovers` import)
-- `src/treeboard/static/index.html` — add tiny theme toggle button in top chrome
+- `src/arboviz/static/popover.js` — becomes thin re-export from `popover/index.js`
+- `src/arboviz/static/arboviz.css` — extract hex colors to CSS tokens under `:root` and `[data-theme="light"]`; add new styles for resize handles, named-state size classes, cycle button
+- `src/arboviz/static/arboviz.js` — no functional change (calls into popover still go through same `setupPopovers` import)
+- `src/arboviz/static/index.html` — add tiny theme toggle button in top chrome
 - `pyproject.toml` — no change (Node test runner needs no Python dep)
 
 **Top-level decision:** the popover module split is part of Phase 1 because every later phase will add new code into `popover/`. Doing the split first means later tasks always add to one specific file instead of growing a monolith.
@@ -45,27 +45,27 @@
 ## Task 1: Snapshot existing popover behavior (no code change)
 
 **Files:**
-- Read-only: `src/treeboard/static/popover.js`, `src/treeboard/static/treeboard.css`, `src/treeboard/static/treeboard.js`, `src/treeboard/static/multiselect.js`
+- Read-only: `src/arboviz/static/popover.js`, `src/arboviz/static/arboviz.css`, `src/arboviz/static/arboviz.js`, `src/arboviz/static/multiselect.js`
 
 - [ ] **Step 1: Verify the public-API surface**
 
 Run:
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/personal projects/treeboard"
-grep -rn "from ['\"].*popover" src/treeboard/static/
-grep -rn "popover" src/treeboard/static/treeboard.js | head -20
+cd "/Users/smb/Infinivo AI Workspace/personal projects/arboviz"
+grep -rn "from ['\"].*popover" src/arboviz/static/
+grep -rn "popover" src/arboviz/static/arboviz.js | head -20
 ```
 
-Expected: only `setupPopovers` is imported externally. The `treeboard:open` event is the call-in mechanism. Confirm the public-API to preserve is: `setupPopovers(viewport)` + the `treeboard:open` event.
+Expected: only `setupPopovers` is imported externally. The `arboviz:open` event is the call-in mechanism. Confirm the public-API to preserve is: `setupPopovers(viewport)` + the `arboviz:open` event.
 
 - [ ] **Step 2: Start the dev server and screenshot current popover**
 
 Run:
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/personal projects/treeboard"
-treeboard . --port 9215 --no-browser > /tmp/treeboard.log 2>&1 &
+cd "/Users/smb/Infinivo AI Workspace/personal projects/arboviz"
+arboviz . --port 9215 --no-browser > /tmp/arboviz.log 2>&1 &
 sleep 2
 open http://127.0.0.1:9215
 ```
@@ -79,14 +79,14 @@ Manually: click a file pill → popover opens. Take a screenshot. Save to `/tmp/
 ## Task 2: Extract hex colors into CSS tokens (theme foundation)
 
 **Files:**
-- Modify: `src/treeboard/static/treeboard.css` (top of file, the `:root` block — currently around lines 1–30)
+- Modify: `src/arboviz/static/arboviz.css` (top of file, the `:root` block — currently around lines 1–30)
 
 - [ ] **Step 1: Read current `:root` block**
 
 Run:
 
 ```bash
-sed -n '1,40p' "/Users/smb/Infinivo AI Workspace/personal projects/treeboard/src/treeboard/static/treeboard.css"
+sed -n '1,40p' "/Users/smb/Infinivo AI Workspace/personal projects/arboviz/src/arboviz/static/arboviz.css"
 ```
 
 Expected: a small `:root { … }` block with a few CSS variables. Note the existing variable names.
@@ -138,12 +138,12 @@ html { transition: background-color 240ms ease, color 240ms ease; }
 }
 ```
 
-- [ ] **Step 3: Audit remaining hex literals in `treeboard.css`**
+- [ ] **Step 3: Audit remaining hex literals in `arboviz.css`**
 
 Run:
 
 ```bash
-grep -nE "#[0-9a-fA-F]{3,6}\b|rgba?\([0-9]" "/Users/smb/Infinivo AI Workspace/personal projects/treeboard/src/treeboard/static/treeboard.css" | grep -v "^\s*/\*" | head -40
+grep -nE "#[0-9a-fA-F]{3,6}\b|rgba?\([0-9]" "/Users/smb/Infinivo AI Workspace/personal projects/arboviz/src/arboviz/static/arboviz.css" | grep -v "^\s*/\*" | head -40
 ```
 
 For each match that represents a *theme* color (sage, dark backgrounds, sage with alpha), replace with the matching `var(--…)`. Keep mode-specific accents (git status reds/blues/yellows, heat map gradients) as raw hex for now — they get their own light-mode pass in a later phase.
@@ -166,8 +166,8 @@ Refresh `http://127.0.0.1:9215`. Dark mode should look identical to the baseline
 - [ ] **Step 5: Commit**
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/personal projects/treeboard"
-git add src/treeboard/static/treeboard.css
+cd "/Users/smb/Infinivo AI Workspace/personal projects/arboviz"
+git add src/arboviz/static/arboviz.css
 git commit -m "refactor(css): extract theme colors to CSS custom properties
 
 Adds :root dark-theme tokens and [data-theme=light] override block.
@@ -180,27 +180,27 @@ mode toggle and the popover overhaul."
 ## Task 3: Add theme toggle to chrome
 
 **Files:**
-- Create: `src/treeboard/static/popover/theme.js`
-- Modify: `src/treeboard/static/index.html` (add button to existing top chrome — find the chrome/toolbar area near top of `<body>`)
-- Modify: `src/treeboard/static/treeboard.js` (import + init theme)
-- Modify: `src/treeboard/static/treeboard.css` (add toggle button styles)
+- Create: `src/arboviz/static/popover/theme.js`
+- Modify: `src/arboviz/static/index.html` (add button to existing top chrome — find the chrome/toolbar area near top of `<body>`)
+- Modify: `src/arboviz/static/arboviz.js` (import + init theme)
+- Modify: `src/arboviz/static/arboviz.css` (add toggle button styles)
 
 - [ ] **Step 1: Locate the chrome area in `index.html`**
 
 Run:
 
 ```bash
-grep -n -E "(class=\"(chrome|topbar|toolbar)\"|<header|<nav)" "/Users/smb/Infinivo AI Workspace/personal projects/treeboard/src/treeboard/static/index.html" | head
+grep -n -E "(class=\"(chrome|topbar|toolbar)\"|<header|<nav)" "/Users/smb/Infinivo AI Workspace/personal projects/arboviz/src/arboviz/static/index.html" | head
 ```
 
 Expected: identify a top-positioned chrome container. If none, the toggle button will be appended directly to `<body>` with `position: fixed` styling.
 
 - [ ] **Step 2: Create `popover/theme.js`**
 
-Write to `src/treeboard/static/popover/theme.js`:
+Write to `src/arboviz/static/popover/theme.js`:
 
 ```js
-const STORAGE_KEY = "treeboard:theme";
+const STORAGE_KEY = "arboviz:theme";
 
 export function getTheme() {
   const stored = localStorage.getItem(STORAGE_KEY);
@@ -238,9 +238,9 @@ export function mountThemeToggle(parent) {
 }
 ```
 
-- [ ] **Step 3: Wire toggle into `treeboard.js`**
+- [ ] **Step 3: Wire toggle into `arboviz.js`**
 
-At the top of `src/treeboard/static/treeboard.js`, add the import (near the other static imports):
+At the top of `src/arboviz/static/arboviz.js`, add the import (near the other static imports):
 
 ```js
 import { initTheme, mountThemeToggle } from "./popover/theme.js";
@@ -248,11 +248,11 @@ import { initTheme, mountThemeToggle } from "./popover/theme.js";
 
 Then in the `DOMContentLoaded` handler (or wherever startup runs), call `initTheme()` *before* the first `redraw()`, and call `mountThemeToggle(document.body)` once during setup.
 
-Find the existing `DOMContentLoaded` listener (already exists per Read of `treeboard.js`) and add `initTheme(); mountThemeToggle(document.body);` as the first two lines of its handler.
+Find the existing `DOMContentLoaded` listener (already exists per Read of `arboviz.js`) and add `initTheme(); mountThemeToggle(document.body);` as the first two lines of its handler.
 
 - [ ] **Step 4: Add toggle CSS**
 
-Append to `src/treeboard/static/treeboard.css`:
+Append to `src/arboviz/static/arboviz.css`:
 
 ```css
 .theme-toggle {
@@ -280,7 +280,7 @@ Refresh `http://127.0.0.1:9215`. A small `☾` button appears top-right. Click �
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/treeboard/static/popover/theme.js src/treeboard/static/treeboard.js src/treeboard/static/treeboard.css
+git add src/arboviz/static/popover/theme.js src/arboviz/static/arboviz.js src/arboviz/static/arboviz.css
 git commit -m "feat(theme): add light-mode toggle with localStorage persistence
 
 Adds a top-right toggle that flips data-theme on the root element.
@@ -293,26 +293,26 @@ prefers-color-scheme when no preference is stored."
 ## Task 4: Create the `popover/` module skeleton
 
 **Files:**
-- Create: `src/treeboard/static/popover/index.js`
-- Modify: `src/treeboard/static/popover.js` (replace contents with thin re-export shim)
+- Create: `src/arboviz/static/popover/index.js`
+- Modify: `src/arboviz/static/popover.js` (replace contents with thin re-export shim)
 
 - [ ] **Step 1: Move the existing popover.js contents into the new module**
 
 Run:
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/personal projects/treeboard/src/treeboard/static"
+cd "/Users/smb/Infinivo AI Workspace/personal projects/arboviz/src/arboviz/static"
 mkdir -p popover
 cp popover.js popover/index.js
 ```
 
 - [ ] **Step 2: Replace `popover.js` with a re-export shim**
 
-Overwrite `src/treeboard/static/popover.js`:
+Overwrite `src/arboviz/static/popover.js`:
 
 ```js
 // Re-export shim — preserves the existing import path for callers in
-// treeboard.js. All implementation now lives in ./popover/.
+// arboviz.js. All implementation now lives in ./popover/.
 export { setupPopovers } from "./popover/index.js";
 ```
 
@@ -323,7 +323,7 @@ Refresh `http://127.0.0.1:9215`. Click a file pill → popover still opens, same
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/treeboard/static/popover.js src/treeboard/static/popover/index.js
+git add src/arboviz/static/popover.js src/arboviz/static/popover/index.js
 git commit -m "refactor(popover): split into popover/ module with re-export shim
 
 No behavioral change. Preparation for the Phase 1 state-model and
@@ -336,18 +336,18 @@ resize modules under popover/."
 ## Task 5: Extract body / notes / diff / positioning into sibling modules
 
 **Files:**
-- Create: `src/treeboard/static/popover/body.js`
-- Create: `src/treeboard/static/popover/notes.js`
-- Create: `src/treeboard/static/popover/diff.js`
-- Create: `src/treeboard/static/popover/positioning.js`
-- Modify: `src/treeboard/static/popover/index.js` (replace inlined helpers with imports)
+- Create: `src/arboviz/static/popover/body.js`
+- Create: `src/arboviz/static/popover/notes.js`
+- Create: `src/arboviz/static/popover/diff.js`
+- Create: `src/arboviz/static/popover/positioning.js`
+- Modify: `src/arboviz/static/popover/index.js` (replace inlined helpers with imports)
 
 - [ ] **Step 1: Identify body / notes / diff / positioning code in `popover/index.js`**
 
 Run:
 
 ```bash
-grep -nE "(function bodyHTML|function _injectNotes|function _wireDiffTabs|function positionPopover|function titleHTML|function headerHTML)" "/Users/smb/Infinivo AI Workspace/personal projects/treeboard/src/treeboard/static/popover/index.js"
+grep -nE "(function bodyHTML|function _injectNotes|function _wireDiffTabs|function positionPopover|function titleHTML|function headerHTML)" "/Users/smb/Infinivo AI Workspace/personal projects/arboviz/src/arboviz/static/popover/index.js"
 ```
 
 Expected: line numbers for each helper. These functions will be moved (cut, not copied) into their respective files.
@@ -421,7 +421,7 @@ Refresh. Open a `.md` file → renders. Open a `.ts` file → syntax highlighted
 - [ ] **Step 8: Commit**
 
 ```bash
-git add src/treeboard/static/popover/
+git add src/arboviz/static/popover/
 git commit -m "refactor(popover): split body, notes, diff, positioning into modules
 
 Pure structural refactor — moves existing helpers out of index.js into
@@ -434,7 +434,7 @@ behavior change."
 ## Task 6: Define the five named states (sizes.js + unit tests)
 
 **Files:**
-- Create: `src/treeboard/static/popover/sizes.js`
+- Create: `src/arboviz/static/popover/sizes.js`
 - Create: `tests/static/popover/test_sizes.mjs`
 
 - [ ] **Step 1: Write the failing test**
@@ -442,7 +442,7 @@ behavior change."
 Create `tests/static/popover/` directory:
 
 ```bash
-mkdir -p "/Users/smb/Infinivo AI Workspace/personal projects/treeboard/tests/static/popover"
+mkdir -p "/Users/smb/Infinivo AI Workspace/personal projects/arboviz/tests/static/popover"
 ```
 
 Write `tests/static/popover/test_sizes.mjs`:
@@ -450,7 +450,7 @@ Write `tests/static/popover/test_sizes.mjs`:
 ```js
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SIZES, STATE_ORDER, sizeFor, nextState, snapToState } from "../../../src/treeboard/static/popover/sizes.js";
+import { SIZES, STATE_ORDER, sizeFor, nextState, snapToState } from "../../../src/arboviz/static/popover/sizes.js";
 
 test("SIZES defines all five named states with width and height", () => {
   for (const name of ["chip", "compact", "standard", "expanded", "full"]) {
@@ -494,7 +494,7 @@ test("snapToState returns null when between named states", () => {
 Run:
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/personal projects/treeboard"
+cd "/Users/smb/Infinivo AI Workspace/personal projects/arboviz"
 node --test tests/static/popover/test_sizes.mjs
 ```
 
@@ -502,7 +502,7 @@ Expected: FAIL — `popover/sizes.js` does not exist yet.
 
 - [ ] **Step 3: Implement `popover/sizes.js`**
 
-Write `src/treeboard/static/popover/sizes.js`:
+Write `src/arboviz/static/popover/sizes.js`:
 
 ```js
 // Named popover sizes (Phase 1 of the popover overhaul).
@@ -551,7 +551,7 @@ Expected: PASS — 6 tests.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/treeboard/static/popover/sizes.js tests/static/popover/test_sizes.mjs
+git add src/arboviz/static/popover/sizes.js tests/static/popover/test_sizes.mjs
 git commit -m "feat(popover): add five named states with cycle + soft-snap math
 
 Defines Chip / Compact / Standard / Expanded / Full sizes, the cycle
@@ -564,7 +564,7 @@ when a rect is within 12px of its dimensions."
 ## Task 7: PopoverModel registry (registry.js + unit tests)
 
 **Files:**
-- Create: `src/treeboard/static/popover/registry.js`
+- Create: `src/arboviz/static/popover/registry.js`
 - Create: `tests/static/popover/test_registry.mjs`
 
 > **Note:** The registry is built and tested in Phase 1 but not yet wired into `popover/index.js` — the existing 2-cap `popovers` array keeps running production behavior. The registry is the data structure the spec (§7.2) requires; it replaces the array in Phase 2 when the cap is lifted and the chip dock + pin land. Landing it here means Phase 2 starts on a known-good foundation.
@@ -576,7 +576,7 @@ Write `tests/static/popover/test_registry.mjs`:
 ```js
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRegistry } from "../../../src/treeboard/static/popover/registry.js";
+import { createRegistry } from "../../../src/arboviz/static/popover/registry.js";
 
 test("register returns a PopoverModel with id, node, state, and rect", () => {
   const reg = createRegistry();
@@ -634,7 +634,7 @@ Expected: FAIL — `popover/registry.js` does not exist yet.
 
 - [ ] **Step 3: Implement `popover/registry.js`**
 
-Write `src/treeboard/static/popover/registry.js`:
+Write `src/arboviz/static/popover/registry.js`:
 
 ```js
 // Registry of open popover instances (Phase 1 — the model is intentionally
@@ -691,7 +691,7 @@ Expected: PASS — 6 tests.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/treeboard/static/popover/registry.js tests/static/popover/test_registry.mjs
+git add src/arboviz/static/popover/registry.js tests/static/popover/test_registry.mjs
 git commit -m "feat(popover): add PopoverModel registry
 
 Map-backed registry keyed by generated id. Tracks node, state, rect,
@@ -704,13 +704,13 @@ linkedTo, anchor land in Phase 2."
 ## Task 8: New header chrome (chrome.js)
 
 **Files:**
-- Create: `src/treeboard/static/popover/chrome.js`
-- Modify: `src/treeboard/static/popover/index.js` (replace inline `headerHTML` with `renderHeader`)
-- Modify: `src/treeboard/static/treeboard.css` (add styles for cycle button)
+- Create: `src/arboviz/static/popover/chrome.js`
+- Modify: `src/arboviz/static/popover/index.js` (replace inline `headerHTML` with `renderHeader`)
+- Modify: `src/arboviz/static/arboviz.css` (add styles for cycle button)
 
 - [ ] **Step 1: Write `popover/chrome.js`**
 
-Write `src/treeboard/static/popover/chrome.js`:
+Write `src/arboviz/static/popover/chrome.js`:
 
 ```js
 // Phase 1 chrome: grip · type · path · cycle · close.
@@ -765,7 +765,7 @@ pop.querySelector(".js-cycle")?.addEventListener("click", () => {
 
 - [ ] **Step 3: Add cycle button styles**
 
-Append to `src/treeboard/static/treeboard.css`:
+Append to `src/arboviz/static/arboviz.css`:
 
 ```css
 .popover .pop-header .actions .ico.js-cycle svg { transform: rotate(0deg); transition: transform 200ms ease; }
@@ -779,7 +779,7 @@ Refresh. Open a popover. Header now shows: grip · `.TS` · path · ↑ cycle bu
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/treeboard/static/popover/chrome.js src/treeboard/static/popover/index.js src/treeboard/static/treeboard.css
+git add src/arboviz/static/popover/chrome.js src/arboviz/static/popover/index.js src/arboviz/static/arboviz.css
 git commit -m "feat(popover): new header chrome with cycle button
 
 Replaces the reveal-in-Finder button with a cycle-size button (wired
@@ -792,11 +792,11 @@ in-body action row."
 ## Task 9: Wire cycle button to state transitions
 
 **Files:**
-- Modify: `src/treeboard/static/popover/index.js`
+- Modify: `src/arboviz/static/popover/index.js`
 
 - [ ] **Step 1: Add named-state size classes to popover CSS**
 
-Append to `src/treeboard/static/treeboard.css`:
+Append to `src/arboviz/static/arboviz.css`:
 
 ```css
 .popover { transition: width 240ms cubic-bezier(.2,.7,.2,1.05), height 240ms cubic-bezier(.2,.7,.2,1.05); }
@@ -842,7 +842,7 @@ Refresh. Open a popover (opens at compact). Click the cycle button four times. S
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/treeboard/static/popover/index.js src/treeboard/static/treeboard.css
+git add src/arboviz/static/popover/index.js src/arboviz/static/arboviz.css
 git commit -m "feat(popover): cycle button transitions through five named states
 
 Click cycles compact → standard → expanded → full → compact. Size
@@ -855,13 +855,13 @@ prefers-reduced-motion."
 ## Task 10: Edge/corner resize handles (resize.js)
 
 **Files:**
-- Create: `src/treeboard/static/popover/resize.js`
-- Modify: `src/treeboard/static/popover/index.js` (wire resize after creation)
-- Modify: `src/treeboard/static/treeboard.css` (resize handle styles)
+- Create: `src/arboviz/static/popover/resize.js`
+- Modify: `src/arboviz/static/popover/index.js` (wire resize after creation)
+- Modify: `src/arboviz/static/arboviz.css` (resize handle styles)
 
 - [ ] **Step 1: Implement `popover/resize.js`**
 
-Write `src/treeboard/static/popover/resize.js`:
+Write `src/arboviz/static/popover/resize.js`:
 
 ```js
 import { SIZES, snapToState } from "./sizes.js";
@@ -927,7 +927,7 @@ function beginResize(e, pop, axis) {
 
 - [ ] **Step 2: Add resize handle CSS**
 
-Append to `src/treeboard/static/treeboard.css`:
+Append to `src/arboviz/static/arboviz.css`:
 
 ```css
 .popover[data-state="freeform"] { transition: none; }
@@ -966,7 +966,7 @@ Verify the cycle button still works after a freeform resize (clicking cycle from
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/treeboard/static/popover/resize.js src/treeboard/static/popover/index.js src/treeboard/static/treeboard.css
+git add src/arboviz/static/popover/resize.js src/arboviz/static/popover/index.js src/arboviz/static/arboviz.css
 git commit -m "feat(popover): edge/corner resize with soft-snap to named states
 
 Pointer-driven resize on right edge, bottom edge, and SE corner.
@@ -981,13 +981,13 @@ nearest named state if within 12px of both dimensions."
 **Files:**
 - Manual: use the `webapp-testing` skill to drive a browser session
 
-- [ ] **Step 1: Start treeboard if not running**
+- [ ] **Step 1: Start arboviz if not running**
 
 Run:
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/personal projects/treeboard"
-pgrep -f "treeboard.*9215" > /dev/null || (treeboard . --port 9215 --no-browser > /tmp/treeboard.log 2>&1 &)
+cd "/Users/smb/Infinivo AI Workspace/personal projects/arboviz"
+pgrep -f "arboviz.*9215" > /dev/null || (arboviz . --port 9215 --no-browser > /tmp/arboviz.log 2>&1 &)
 sleep 2
 ```
 
@@ -1027,17 +1027,17 @@ git commit -m "test(popover): add Phase 1 visual baselines for dark + light them
 Run:
 
 ```bash
-grep -rn "setupPopovers\|treeboard:open" "/Users/smb/Infinivo AI Workspace/personal projects/treeboard/src/treeboard/static/" | grep -v node_modules
+grep -rn "setupPopovers\|arboviz:open" "/Users/smb/Infinivo AI Workspace/personal projects/arboviz/src/arboviz/static/" | grep -v node_modules
 ```
 
-Expected: only the `popover.js` shim re-exports `setupPopovers`, and `treeboard.js` still imports it. The `treeboard:open` event still drives popover opening.
+Expected: only the `popover.js` shim re-exports `setupPopovers`, and `arboviz.js` still imports it. The `arboviz:open` event still drives popover opening.
 
 - [ ] **Step 2: Run all Python tests to ensure no server-side regression**
 
 Run:
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/personal projects/treeboard"
+cd "/Users/smb/Infinivo AI Workspace/personal projects/arboviz"
 pytest -q
 ```
 
@@ -1048,7 +1048,7 @@ Expected: all tests pass (none touched the popover).
 Run:
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/personal projects/treeboard"
+cd "/Users/smb/Infinivo AI Workspace/personal projects/arboviz"
 node --test tests/static/popover/
 ```
 
@@ -1087,7 +1087,7 @@ These appear in the spec but are NOT delivered in Phase 1:
 - Compare mode (`⌘`/`Alt` click) — Phase 5
 - Materialize-from-pill entrance + content cascade — Phase 3
 - AI summary, related files, action row, redesigned notes — Phase 4 (also adds new backend endpoints)
-- Bookmark persistence at `~/.config/treeboard/bookmarks.json` — Phase 4
+- Bookmark persistence at `~/.config/arboviz/bookmarks.json` — Phase 4
 - Coordinate-space switch for pinned popovers — Phase 2 (alongside pinning)
 - Light-mode popover internals (Tokyo Night → Github Light syntax theme, popover-specific token tuning) — dedicated theming pass after Phase 4
 

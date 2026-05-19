@@ -7,7 +7,7 @@ from typing import Optional
 
 import pathspec
 
-from treeboard.scan import _load_gitignore
+from arboviz.scan import _load_gitignore
 
 
 def folder_meta(

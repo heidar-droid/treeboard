@@ -1,5 +1,5 @@
 import pathlib
-from treeboard.render import read_file
+from arboviz.render import read_file
 
 
 def test_read_text_file(tmp_tree):

@@ -13,8 +13,8 @@ function _gitStatus() {
 }
 
 export function setupPopovers(viewport) {
-  window.addEventListener("treeboard:open", e => openFor(e.detail.node, viewport));
-  window.addEventListener("treeboard:escape", () => {
+  window.addEventListener("arboviz:open", e => openFor(e.detail.node, viewport));
+  window.addEventListener("arboviz:escape", () => {
     if (popovers.length) closePopover(popovers[popovers.length - 1]);
   });
 

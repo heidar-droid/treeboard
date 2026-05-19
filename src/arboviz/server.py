@@ -12,14 +12,14 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from treeboard.scan import scan_tree
-from treeboard.meta import folder_meta
-from treeboard.render import read_file
-from treeboard.watcher import TreeWatcher
-from treeboard.git import git_status, git_diff
-from treeboard.search import content_search
-from treeboard.imports import parse_imports
-from treeboard.persist import load_json, save_json, _RW_LOCK
+from arboviz.scan import scan_tree
+from arboviz.meta import folder_meta
+from arboviz.render import read_file
+from arboviz.watcher import TreeWatcher
+from arboviz.git import git_status, git_diff
+from arboviz.search import content_search
+from arboviz.imports import parse_imports
+from arboviz.persist import load_json, save_json, _RW_LOCK
 
 
 def build_app(
@@ -62,9 +62,9 @@ def build_app(
             task.cancel()
             watcher.stop()
 
-    app = FastAPI(title="Treeboard", lifespan=lifespan)
+    app = FastAPI(title="Arboviz", lifespan=lifespan)
 
-    # Treeboard is a local dev tool — never let the browser cache assets, or
+    # Arboviz is a local dev tool — never let the browser cache assets, or
     # iterating on the UI requires constant manual cache busting.
     class NoCache(BaseHTTPMiddleware):
         async def dispatch(self, request: Request, call_next):
@@ -127,14 +127,14 @@ def build_app(
 
     @app.post("/api/spawn-project")
     def spawn_project():
-        """Open native folder picker (macOS), spawn a new treeboard process for it.
+        """Open native folder picker (macOS), spawn a new arboviz process for it.
 
         Returns the URL of the new instance so the frontend can add it as a tab.
         """
         import socket
         result = subprocess.run(
             ["osascript", "-e",
-             'try\nset folderPath to POSIX path of (choose folder with prompt "Choose a folder to open in Treeboard")\nreturn folderPath\non error\nreturn ""\nend try'],
+             'try\nset folderPath to POSIX path of (choose folder with prompt "Choose a folder to open in Arboviz")\nreturn folderPath\non error\nreturn ""\nend try'],
             capture_output=True, text=True, check=False,
         )
         chosen = (result.stdout or "").strip().rstrip("/")
@@ -146,7 +146,7 @@ def build_app(
         with socket.socket() as s:
             s.bind(("127.0.0.1", 0))
             free_port = s.getsockname()[1]
-        cmd = ["treeboard", str(folder), "--port", str(free_port), "--no-browser"]
+        cmd = ["arboviz", str(folder), "--port", str(free_port), "--no-browser"]
         subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         return {
             "ok": True,
@@ -196,7 +196,7 @@ def build_app(
                 chars = 0
             return {"path": str(p), "chars": chars, "tokens": max(1, chars // 4)}
         if p.is_dir():
-            SKIP_DIRS = {".git", "node_modules", "__pycache__", ".treeboard"}
+            SKIP_DIRS = {".git", "node_modules", "__pycache__", ".arboviz"}
             total = 0
             for f in p.rglob("*"):
                 if not f.is_file():
@@ -230,7 +230,7 @@ def build_app(
         if not safe_paths:
             raise HTTPException(422, "no valid paths provided")
         snap_id = str(time.time_ns())
-        snap_dir = root_p / ".treeboard" / "snapshots" / snap_id
+        snap_dir = root_p / ".arboviz" / "snapshots" / snap_id
         snap_dir.mkdir(parents=True, exist_ok=True)
         saved = []
         for p in safe_paths:

@@ -1,10 +1,10 @@
-# Treeboard — Chunk B: Control Center + Multi-Select Implementation Plan
+# Arboviz — Chunk B: Control Center + Multi-Select Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add the floating Control Center pill bar, pin bar, multi-select with ripple animation, token counter, AI copy button with toast, and all supporting CSS animations — wired into the existing treeboard canvas.
+**Goal:** Add the floating Control Center pill bar, pin bar, multi-select with ripple animation, token counter, AI copy button with toast, and all supporting CSS animations — wired into the existing arboviz canvas.
 
-**Architecture:** Three new ES modules (`state.js`, `control-center.js`, `multiselect.js`) imported by `treeboard.js`. All DOM for the HUD is injected by JS — `index.html` gets no changes. `treeboard.css` gets all new styles appended at the bottom. The existing `window.__tb` global is extended with `selection` and `mode` so future chunks can read them.
+**Architecture:** Three new ES modules (`state.js`, `control-center.js`, `multiselect.js`) imported by `arboviz.js`. All DOM for the HUD is injected by JS — `index.html` gets no changes. `arboviz.css` gets all new styles appended at the bottom. The existing `window.__tb` global is extended with `selection` and `mode` so future chunks can read them.
 
 **Tech Stack:** Vanilla ES modules, CSS custom properties, SVG, Fetch API. No build step. All animations are CSS keyframes or transitions — no JS animation libraries.
 
@@ -22,22 +22,22 @@
 
 | File | Action | Responsibility |
 |---|---|---|
-| `src/treeboard/static/state.js` | **Create** | Shared singleton: selection Set, current mode string, subscribers |
-| `src/treeboard/static/control-center.js` | **Create** | Build HUD DOM, wire mode buttons, AI copy, quick icons, token display, pin bar |
-| `src/treeboard/static/multiselect.js` | **Create** | Cmd/Shift click on SVG nodes, ripple animation, Escape to clear, notify state |
-| `src/treeboard/static/treeboard.css` | **Modify** | Append all new CSS: control center, pin bar, selection ring, mode flash, toast, animations |
-| `src/treeboard/static/treeboard.js` | **Modify** | Import and initialise the three new modules; extend `window.__tb`; pass nodeIndex to multiselect |
+| `src/arboviz/static/state.js` | **Create** | Shared singleton: selection Set, current mode string, subscribers |
+| `src/arboviz/static/control-center.js` | **Create** | Build HUD DOM, wire mode buttons, AI copy, quick icons, token display, pin bar |
+| `src/arboviz/static/multiselect.js` | **Create** | Cmd/Shift click on SVG nodes, ripple animation, Escape to clear, notify state |
+| `src/arboviz/static/arboviz.css` | **Modify** | Append all new CSS: control center, pin bar, selection ring, mode flash, toast, animations |
+| `src/arboviz/static/arboviz.js` | **Modify** | Import and initialise the three new modules; extend `window.__tb`; pass nodeIndex to multiselect |
 
 ---
 
 ## Task 1: `state.js` — Shared Application State
 
 **Files:**
-- Create: `src/treeboard/static/state.js`
+- Create: `src/arboviz/static/state.js`
 
 This module holds two pieces of mutable state that multiple modules need to read and write: `selection` (a `Set` of selected paths) and `mode` (one of `"tree" | "git" | "heat" | "graph"`). It notifies subscribers on change.
 
-- [ ] **Step 1: Create `src/treeboard/static/state.js`**
+- [ ] **Step 1: Create `src/arboviz/static/state.js`**
 
 ```js
 // Shared singleton state for selection and canvas mode.
@@ -81,7 +81,7 @@ function _notify() {
 
 - [ ] **Step 2: Verify module loads in browser**
 
-Start treeboard on any directory, open browser console, run:
+Start arboviz on any directory, open browser console, run:
 ```js
 import("/static/state.js").then(m => console.log(m.state.mode))
 ```
@@ -90,8 +90,8 @@ Expected: `"tree"` logged without errors.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd "/Users/smb/Infinivo AI Workspace/personal projects/treeboard"
-git add src/treeboard/static/state.js
+cd "/Users/smb/Infinivo AI Workspace/personal projects/arboviz"
+git add src/arboviz/static/state.js
 git commit -m "feat(frontend): add shared state module (selection, mode)"
 ```
 
@@ -100,9 +100,9 @@ git commit -m "feat(frontend): add shared state module (selection, mode)"
 ## Task 2: CSS — Control Center, Pin Bar, Selection Ring, Toast, Animations
 
 **Files:**
-- Modify: `src/treeboard/static/treeboard.css` (append only — do not touch existing rules)
+- Modify: `src/arboviz/static/arboviz.css` (append only — do not touch existing rules)
 
-- [ ] **Step 1: Append all new CSS to the end of `treeboard.css`**
+- [ ] **Step 1: Append all new CSS to the end of `arboviz.css`**
 
 Append exactly this block:
 
@@ -317,12 +317,12 @@ Append exactly this block:
 
 - [ ] **Step 2: Verify no existing styles broken**
 
-Start treeboard, confirm the canvas renders identically to before (no visual regressions). The new CSS is append-only — no existing selectors are modified.
+Start arboviz, confirm the canvas renders identically to before (no visual regressions). The new CSS is append-only — no existing selectors are modified.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add src/treeboard/static/treeboard.css
+git add src/arboviz/static/arboviz.css
 git commit -m "feat(frontend): add control center, pin bar, multi-select, toast CSS"
 ```
 
@@ -331,9 +331,9 @@ git commit -m "feat(frontend): add control center, pin bar, multi-select, toast 
 ## Task 3: `control-center.js` — HUD Construction & Logic
 
 **Files:**
-- Create: `src/treeboard/static/control-center.js`
+- Create: `src/arboviz/static/control-center.js`
 
-- [ ] **Step 1: Create `src/treeboard/static/control-center.js`**
+- [ ] **Step 1: Create `src/arboviz/static/control-center.js`**
 
 ```js
 import { state } from "/static/state.js";
@@ -390,7 +390,7 @@ function _buildPinBar(treeRoot) {
     chip.textContent = node.name;
     chip.title = node.path;
     chip.addEventListener("click", () => {
-      window.dispatchEvent(new CustomEvent("treeboard:open", { detail: { node } }));
+      window.dispatchEvent(new CustomEvent("arboviz:open", { detail: { node } }));
     });
     bar.appendChild(chip);
     // staggered land animation
@@ -611,7 +611,7 @@ export function showToast(msg) {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/treeboard/static/control-center.js
+git add src/arboviz/static/control-center.js
 git commit -m "feat(frontend): add control center module (pill bar, pin bar, AI copy, toast)"
 ```
 
@@ -620,9 +620,9 @@ git commit -m "feat(frontend): add control center module (pill bar, pin bar, AI 
 ## Task 4: `multiselect.js` — Node Selection with Ripple
 
 **Files:**
-- Create: `src/treeboard/static/multiselect.js`
+- Create: `src/arboviz/static/multiselect.js`
 
-- [ ] **Step 1: Create `src/treeboard/static/multiselect.js`**
+- [ ] **Step 1: Create `src/arboviz/static/multiselect.js`**
 
 ```js
 import { state } from "/static/state.js";
@@ -647,7 +647,7 @@ export function wireMultiselect(board, nodeIndex) {
       _syncNodeHighlight(board, state.selection);
     };
 
-    g.addEventListener("click", g.__msHandler, true); // capture phase — fires before treeboard.js
+    g.addEventListener("click", g.__msHandler, true); // capture phase — fires before arboviz.js
   });
 }
 
@@ -687,16 +687,16 @@ function _fireRipple(g) {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/treeboard/static/multiselect.js
+git add src/arboviz/static/multiselect.js
 git commit -m "feat(frontend): add multi-select module (Cmd-click, ripple, highlight sync)"
 ```
 
 ---
 
-## Task 5: Wire Everything into `treeboard.js`
+## Task 5: Wire Everything into `arboviz.js`
 
 **Files:**
-- Modify: `src/treeboard/static/treeboard.js`
+- Modify: `src/arboviz/static/arboviz.js`
 
 Three changes:
 1. Add imports at top
@@ -704,7 +704,7 @@ Three changes:
 3. Call `wireMultiselect(board, nodeIndex)` inside `wireInteractions()` and `syncSelectionHighlight` on Escape
 4. Extend `window.__tb` with `state`
 
-- [ ] **Step 1: Add imports at top of `treeboard.js`** (after the existing import block)
+- [ ] **Step 1: Add imports at top of `arboviz.js`** (after the existing import block)
 
 ```js
 import { setupControlCenter } from "/static/control-center.js";
@@ -737,7 +737,7 @@ So the full Escape branch becomes:
   if (e.key === "Escape") {
     state.clearSelection();
     syncSelectionHighlight(board, state.selection);
-    window.dispatchEvent(new CustomEvent("treeboard:escape"));
+    window.dispatchEvent(new CustomEvent("arboviz:escape"));
     return;
   }
 ```
@@ -752,18 +752,18 @@ window.__tb = { camera, nodeIndex, redraw, state, get tree() { return tree; } };
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/treeboard/static/treeboard.js
-git commit -m "feat(frontend): wire control center and multi-select into treeboard"
+git add src/arboviz/static/arboviz.js
+git commit -m "feat(frontend): wire control center and multi-select into arboviz"
 ```
 
 ---
 
 ## Final Verification
 
-- [ ] **Step 1: Start treeboard and manually verify all behaviours**
+- [ ] **Step 1: Start arboviz and manually verify all behaviours**
 
 ```bash
-treeboard "/Users/smb/Infinivo AI Workspace/personal projects/treeboard" --no-browser
+arboviz "/Users/smb/Infinivo AI Workspace/personal projects/arboviz" --no-browser
 ```
 
 Open `http://localhost:<port>` and check:

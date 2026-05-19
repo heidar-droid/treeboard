@@ -35,12 +35,12 @@ toggleChangedFilter()       ← exported from git-overlay.js
   saves collapsed snapshot
   collapses all nodes whose path prefix is NOT in statusMap
   toggle restores snapshot
-  shortcut: ⌘⇧G in treeboard.js keydown handler
+  shortcut: ⌘⇧G in arboviz.js keydown handler
 ```
 
 **Why attribute selectors not JS style mutations**: the board is fully rebuilt on every `redraw()` call. Attribute selectors on `.node` survive because `renderBoard()` preserves the `g[data-path]` element structure — we just re-stamp the attribute after each redraw. CSS handles the visual; no inline style churn.
 
-**Why the stagger uses `setTimeout` not CSS animation-delay**: pills are SVG elements inside a foreign document context. CSS custom property inheritance for delay values is unreliable across SVG namespace boundaries. `setTimeout` is deterministic and matches the cascade reveal pattern already in `treeboard.js`.
+**Why the stagger uses `setTimeout` not CSS animation-delay**: pills are SVG elements inside a foreign document context. CSS custom property inheritance for delay values is unreliable across SVG namespace boundaries. `setTimeout` is deterministic and matches the cascade reveal pattern already in `arboviz.js`.
 
 ---
 
@@ -49,9 +49,9 @@ toggleChangedFilter()       ← exported from git-overlay.js
 | Layer | Technology |
 |---|---|
 | New module | Vanilla ES module (`git-overlay.js`) — no bundler, matches existing pattern |
-| Styling | CSS attribute selectors appended to `treeboard.css` |
+| Styling | CSS attribute selectors appended to `arboviz.css` |
 | Backend | Already exists: `GET /api/git/status` → `{relPath: status}`, `GET /api/git/diff?path=` → `{diff: string}` |
-| Shortcut | `keydown` handler in `treeboard.js`, same pattern as existing `⌘0` |
+| Shortcut | `keydown` handler in `arboviz.js`, same pattern as existing `⌘0` |
 | Popover diff tab | Injected HTML in `openFor()`, tabbed with minimal JS inside popover |
 
 ---
@@ -60,22 +60,22 @@ toggleChangedFilter()       ← exported from git-overlay.js
 
 | Action | File |
 |---|---|
-| **Create** | `src/treeboard/static/git-overlay.js` |
-| **Modify** | `src/treeboard/static/popover.js` — diff tab injection |
-| **Modify** | `src/treeboard/static/treeboard.js` — import + wire, ⌘⇧G |
-| **Modify** | `src/treeboard/static/treeboard.css` — git status colors + diff colors |
+| **Create** | `src/arboviz/static/git-overlay.js` |
+| **Modify** | `src/arboviz/static/popover.js` — diff tab injection |
+| **Modify** | `src/arboviz/static/arboviz.js` — import + wire, ⌘⇧G |
+| **Modify** | `src/arboviz/static/arboviz.css` — git status colors + diff colors |
 | **Test** | Manual smoke test steps (see Testing section) |
 
 ---
 
 ## Tasks
 
-### Task 1 — Create `src/treeboard/static/git-overlay.js`
+### Task 1 — Create `src/arboviz/static/git-overlay.js`
 
 Create the file from scratch. This module owns all git-status coloring logic and the changed-filter toggle.
 
 ```javascript
-// src/treeboard/static/git-overlay.js
+// src/arboviz/static/git-overlay.js
 
 import { state } from "/static/state.js";
 
@@ -112,7 +112,7 @@ export function setupGitOverlay(board) {
 /**
  * Toggle the "show only changed" filter.
  *
- * @param {Set<string>}   collapsed   - live collapsed set from treeboard.js
+ * @param {Set<string>}   collapsed   - live collapsed set from arboviz.js
  * @param {function}      redraw      - window.__tb.redraw
  */
 export function toggleChangedFilter(collapsed, redraw) {
@@ -233,9 +233,9 @@ function _showFilterToast(active) {
 
 ---
 
-### Task 2 — CSS additions in `src/treeboard/static/treeboard.css`
+### Task 2 — CSS additions in `src/arboviz/static/arboviz.css`
 
-Append the following block to the end of `treeboard.css`. Do not replace anything — append only.
+Append the following block to the end of `arboviz.css`. Do not replace anything — append only.
 
 ```css
 /* ============ GIT STATUS OVERLAY ============ */
@@ -319,7 +319,7 @@ Append the following block to the end of `treeboard.css`. Do not replace anythin
 
 ---
 
-### Task 3 — Modify `src/treeboard/static/popover.js`
+### Task 3 — Modify `src/arboviz/static/popover.js`
 
 Three changes:
 1. The `openFor()` function needs to detect git mode + git status for the file, then inject a tab bar.
@@ -495,7 +495,7 @@ function _wireDiffTabs(pop, absPath) {
 
 ---
 
-### Task 4 — Modify `src/treeboard/static/treeboard.js`
+### Task 4 — Modify `src/arboviz/static/arboviz.js`
 
 **Change A** — add import at the top (after the existing imports block):
 
@@ -503,7 +503,7 @@ function _wireDiffTabs(pop, absPath) {
 import { setupGitOverlay, toggleChangedFilter, applyGitColors } from "/static/git-overlay.js";
 ```
 
-Full updated import block (lines 1–10 of treeboard.js become):
+Full updated import block (lines 1–10 of arboviz.js become):
 
 ```javascript
 import { layout, subtreeBoundingBox, nodeBoundingBox } from "/static/layout.js";
@@ -573,7 +573,7 @@ export function clearGitColors(board) {
 }
 ```
 
-**Now the redraw re-apply in treeboard.js** (the static import already gives us `applyGitColors`):
+**Now the redraw re-apply in arboviz.js** (the static import already gives us `applyGitColors`):
 
 ```javascript
   // Re-apply git colors after every redraw (renderBoard wipes the SVG).
@@ -594,14 +594,14 @@ export function clearGitColors(board) {
   }
 ```
 
-Full updated keyboard handler (replaces lines 224–239 of treeboard.js):
+Full updated keyboard handler (replaces lines 224–239 of arboviz.js):
 
 ```javascript
 window.addEventListener("keydown", e => {
   if (e.key === "Escape") {
     state.clearSelection();
     syncSelectionHighlight(board, state.selection);
-    window.dispatchEvent(new CustomEvent("treeboard:escape"));
+    window.dispatchEvent(new CustomEvent("arboviz:escape"));
     return;
   }
   if ((e.metaKey || e.ctrlKey) && e.key === "0") {
@@ -622,7 +622,7 @@ window.addEventListener("keydown", e => {
 });
 ```
 
-**Change E** — expose `collapsed` on `window.__tb` so `toggleChangedFilter` can access it from the ⌘K Actions tab when Chunk C wires it up. Update the existing `window.__tb` assignment at the bottom of treeboard.js:
+**Change E** — expose `collapsed` on `window.__tb` so `toggleChangedFilter` can access it from the ⌘K Actions tab when Chunk C wires it up. Update the existing `window.__tb` assignment at the bottom of arboviz.js:
 
 ```javascript
 window.__tb = { camera, nodeIndex, redraw, state, collapsed, get tree() { return tree; } };
@@ -644,10 +644,10 @@ Verify the read-path: `openFor()` calls `_gitStatus()[_relPath(node.path)]`. `_r
 
 ```
 1. Create git-overlay.js                    (Task 1)
-2. Append CSS to treeboard.css              (Task 2)
+2. Append CSS to arboviz.css              (Task 2)
 3. Modify popover.js (4 changes)            (Task 3)
-4. Modify treeboard.js (5 changes)          (Task 4)
-5. Run treeboard on a dirty git repo        (Testing)
+4. Modify arboviz.js (5 changes)          (Task 4)
+5. Run arboviz on a dirty git repo        (Testing)
 ```
 
 ---
@@ -657,9 +657,9 @@ Verify the read-path: `openFor()` calls `_gitStatus()[_relPath(node.path)]`. `_r
 ### Manual smoke test — Git Overlay
 
 ```bash
-# Start treeboard on this workspace (it's a git repo with dirty files)
-cd "/Users/smb/Infinivo AI Workspace/personal projects/treeboard"
-python -m treeboard .
+# Start arboviz on this workspace (it's a git repo with dirty files)
+cd "/Users/smb/Infinivo AI Workspace/personal projects/arboviz"
+python -m arboviz .
 # Open http://localhost:7890 in browser
 ```
 

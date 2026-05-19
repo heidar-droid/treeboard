@@ -1,6 +1,6 @@
 import pathlib
 import pytest
-from treeboard.search import content_search
+from arboviz.search import content_search
 
 
 def test_search_finds_string(tmp_path):
@@ -31,6 +31,6 @@ def test_search_skips_binary(tmp_path):
 
 
 def test_search_case_insensitive(tmp_path):
-    (tmp_path / "readme.md").write_text("# Treeboard\nA tool.\n")
-    results = content_search(tmp_path, "treeboard", case_sensitive=False)
+    (tmp_path / "readme.md").write_text("# Arboviz\nA tool.\n")
+    results = content_search(tmp_path, "arboviz", case_sensitive=False)
     assert len(results) == 1

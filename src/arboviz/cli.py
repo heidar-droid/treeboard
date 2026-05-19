@@ -9,12 +9,12 @@ import webbrowser
 
 import uvicorn
 
-from treeboard.server import build_app
+from arboviz.server import build_app
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="treeboard",
+        prog="arboviz",
         description="Cinematic pyramid visualiser for any directory.",
     )
     parser.add_argument(
@@ -46,7 +46,7 @@ def _pick_port(preferred: int = 0) -> int:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if not args.path.is_dir():
-        print(f"treeboard: '{args.path}' is not a directory", file=sys.stderr)
+        print(f"arboviz: '{args.path}' is not a directory", file=sys.stderr)
         return 1
 
     app = build_app(
@@ -56,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     port = _pick_port(args.port)
     url = f"http://127.0.0.1:{port}"
-    print(f"treeboard serving {args.path} → {url}")
+    print(f"arboviz serving {args.path} → {url}")
 
     if not args.no_browser:
         threading.Timer(0.5, lambda: webbrowser.open(url)).start()

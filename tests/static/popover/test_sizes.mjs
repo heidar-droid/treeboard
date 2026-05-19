@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SIZES, STATE_ORDER, sizeFor, nextState, snapToState } from "../../../src/treeboard/static/popover/sizes.js";
+import { SIZES, STATE_ORDER, sizeFor, nextState, snapToState } from "../../../src/arboviz/static/popover/sizes.js";
 
 test("SIZES defines all five named states with width and height", () => {
   for (const name of ["chip", "compact", "standard", "expanded", "full"]) {

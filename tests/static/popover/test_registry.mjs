@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRegistry } from "../../../src/treeboard/static/popover/registry.js";
+import { createRegistry } from "../../../src/arboviz/static/popover/registry.js";
 
 test("register returns a PopoverModel with id, node, state, and rect", () => {
   const reg = createRegistry();

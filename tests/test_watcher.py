@@ -3,7 +3,7 @@ import pathlib
 
 import pytest
 
-from treeboard.watcher import TreeWatcher
+from arboviz.watcher import TreeWatcher
 
 
 @pytest.mark.asyncio

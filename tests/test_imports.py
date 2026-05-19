@@ -1,6 +1,6 @@
 import pathlib
 import pytest
-from treeboard.imports import parse_imports
+from arboviz.imports import parse_imports
 
 
 def test_js_import(tmp_path):
@@ -16,7 +16,7 @@ def test_js_import(tmp_path):
 
 
 def test_python_import(tmp_path):
-    (tmp_path / "main.py").write_text("from treeboard.scan import scan_tree\nimport os\n")
+    (tmp_path / "main.py").write_text("from arboviz.scan import scan_tree\nimport os\n")
     (tmp_path / "scan.py").write_text("def scan_tree(): pass\n")
     graph = parse_imports(tmp_path)
     main = str(tmp_path / "main.py")

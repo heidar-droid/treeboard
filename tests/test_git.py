@@ -1,7 +1,7 @@
 import subprocess
 import pathlib
 import pytest
-from treeboard.git import git_status, git_diff
+from arboviz.git import git_status, git_diff
 
 
 def test_git_status_not_a_repo(tmp_path):

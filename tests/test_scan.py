@@ -1,4 +1,4 @@
-from treeboard.scan import scan_tree
+from arboviz.scan import scan_tree
 
 
 def test_scan_returns_root_node(tmp_tree):

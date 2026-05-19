@@ -1,5 +1,5 @@
 import pathlib
-from treeboard.cli import parse_args
+from arboviz.cli import parse_args
 
 
 def test_parse_default_path():

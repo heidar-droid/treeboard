@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "treeboard"
+name = "arboviz"
 version = "0.1.0"
 description = "Cinematic pyramid visualiser for any directory tree."
 readme = "README.md"
@@ -33,9 +33,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/heidar-droid/treeboard"
-Repository = "https://github.com/heidar-droid/treeboard"
-"Bug Tracker" = "https://github.com/heidar-droid/treeboard/issues"
+Homepage = "https://github.com/heidar-droid/arboviz"
+Repository = "https://github.com/heidar-droid/arboviz"
+"Bug Tracker" = "https://github.com/heidar-droid/arboviz/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -45,16 +45,16 @@ dev = [
 ]
 
 [project.scripts]
-treeboard = "treeboard.cli:main"
+arboviz = "arboviz.cli:main"
 
 [tool.hatch.build]
 include = [
-  "src/treeboard/**/*.py",
-  "src/treeboard/static/**/*",
+  "src/arboviz/**/*.py",
+  "src/arboviz/static/**/*",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/treeboard"]
+packages = ["src/arboviz"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

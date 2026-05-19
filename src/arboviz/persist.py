@@ -8,9 +8,9 @@ _MISSING = object()
 _RW_LOCK = threading.Lock()
 
 
-def treeboard_dir(root: pathlib.Path) -> pathlib.Path:
-    """Return (and create) the .treeboard/ directory inside root."""
-    d = root / ".treeboard"
+def arboviz_dir(root: pathlib.Path) -> pathlib.Path:
+    """Return (and create) the .arboviz/ directory inside root."""
+    d = root / ".arboviz"
     d.mkdir(exist_ok=True)
     gi = d / ".gitignore"
     if not gi.exists():
@@ -19,8 +19,8 @@ def treeboard_dir(root: pathlib.Path) -> pathlib.Path:
 
 
 def load_json(root: pathlib.Path, name: str, *, default=_MISSING):
-    """Load .treeboard/<name>.json, returning default if missing or corrupt."""
-    p = treeboard_dir(root) / f"{name}.json"
+    """Load .arboviz/<name>.json, returning default if missing or corrupt."""
+    p = arboviz_dir(root) / f"{name}.json"
     if not p.exists():
         return {} if default is _MISSING else default
     try:
@@ -30,8 +30,8 @@ def load_json(root: pathlib.Path, name: str, *, default=_MISSING):
 
 
 def save_json(root: pathlib.Path, name: str, data) -> None:
-    """Write data to .treeboard/<name>.json atomically."""
-    d = treeboard_dir(root)
+    """Write data to .arboviz/<name>.json atomically."""
+    d = arboviz_dir(root)
     tmp = d / f"{name}.json.tmp"
     try:
         tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
