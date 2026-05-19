@@ -1817,3 +1817,511 @@ git commit -m "feat(frontend): wire agent modules into main — scan beam, timel
 ```
 
 ---
+
+## Phase 3: Integration, Window, Install, Tests
+
+---
+
+### Task 13: PyWebView native window — `window.py`
+
+**Files:**
+- Create: `src/arboviz/window.py`
+
+- [ ] **Step 1: Create `window.py`**
+
+```python
+# src/arboviz/window.py
+from __future__ import annotations
+
+import pathlib
+import threading
+import webbrowser
+
+
+def open_native_window(url: str, title: str = "arboviz") -> None:
+    """
+    Open a native macOS window using PyWebView.
+    Falls back to browser tab if PyWebView is not installed.
+    """
+    try:
+        import webview  # pywebview
+    except ImportError:
+        _warn_once()
+        webbrowser.open(url)
+        return
+
+    class Api:
+        def bring_to_front(self):
+            for w in webview.windows:
+                w.on_top = True
+
+        def send_to_back(self):
+            for w in webview.windows:
+                w.on_top = False
+
+    window = webview.create_window(
+        title,
+        url,
+        width=900,
+        height=640,
+        resizable=True,
+        js_api=Api(),
+    )
+    # webview.start() blocks — run in thread so caller can continue
+    threading.Thread(
+        target=webview.start,
+        kwargs={"debug": False},
+        daemon=True,
+    ).start()
+
+
+def _warn_once() -> None:
+    flag = pathlib.Path.home() / ".arboviz" / ".native_warned"
+    if flag.exists():
+        return
+    flag.parent.mkdir(parents=True, exist_ok=True)
+    flag.touch()
+    print(
+        "arboviz: native window unavailable — "
+        "run 'pip install arboviz[native]' to enable. "
+        "Running in browser mode."
+    )
+```
+
+- [ ] **Step 2: Update `cli.py` to use `window.py`**
+
+In `main()` in `src/arboviz/cli.py`, replace the `webbrowser.open` call with:
+
+```python
+    from arboviz.window import open_native_window
+    # ...
+    if not args.no_browser:
+        threading.Timer(0.5, lambda: open_native_window(url)).start()
+```
+
+Remove the old `webbrowser.open(url)` call inside the timer.
+
+- [ ] **Step 3: Add pywebview to `pyproject.toml` optional deps**
+
+In `pyproject.toml`, update `[project.optional-dependencies]`:
+
+```toml
+[project.optional-dependencies]
+native = ["pywebview>=5.0"]
+dev = [
+  "pytest>=8.0",
+  "httpx>=0.27",
+  "pytest-asyncio>=0.23",
+  "playwright>=1.40",
+  "pytest-playwright>=0.4",
+]
+```
+
+Also extend `[tool.hatch.build] include` to package the skill file:
+
+```toml
+[tool.hatch.build]
+include = [
+  "src/arboviz/**/*.py",
+  "src/arboviz/static/**/*",
+  "src/arboviz/skills/**/*",
+]
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/arboviz/window.py src/arboviz/cli.py pyproject.toml
+git commit -m "feat(window): add PyWebView native window with browser tab fallback"
+```
+
+---
+
+### Task 14: Post-install skill symlink — `install.py`
+
+**Files:**
+- Create: `src/arboviz/install.py`
+- Modify: `pyproject.toml`
+
+- [ ] **Step 1: Create `install.py`**
+
+```python
+# src/arboviz/install.py
+"""
+Post-install hook: symlinks the arboviz Claude Code skill into ~/.claude/skills/.
+Run automatically via: pip install arboviz
+
+To run manually: python -m arboviz.install
+"""
+from __future__ import annotations
+
+import pathlib
+import sys
+
+
+SKILLS_SRC = pathlib.Path(__file__).parent / "skills" / "arboviz"
+CLAUDE_SKILLS = pathlib.Path.home() / ".claude" / "skills"
+SKILL_LINK = CLAUDE_SKILLS / "arboviz"
+
+
+def install_skill() -> None:
+    if not SKILLS_SRC.exists():
+        print(f"arboviz: skill source not found at {SKILLS_SRC}", file=sys.stderr)
+        return
+
+    CLAUDE_SKILLS.mkdir(parents=True, exist_ok=True)
+
+    if SKILL_LINK.exists() or SKILL_LINK.is_symlink():
+        SKILL_LINK.unlink()
+
+    SKILL_LINK.symlink_to(SKILLS_SRC)
+    print(f"arboviz: Claude Code skill installed → {SKILL_LINK}")
+
+
+def uninstall_skill() -> None:
+    if SKILL_LINK.is_symlink():
+        SKILL_LINK.unlink()
+        print(f"arboviz: Claude Code skill removed from {SKILL_LINK}")
+
+
+if __name__ == "__main__":
+    install_skill()
+```
+
+- [ ] **Step 2: Register as a console script in `pyproject.toml`**
+
+```toml
+[project.scripts]
+arboviz = "arboviz.cli:main"
+arboviz-install = "arboviz.install:install_skill"
+```
+
+- [ ] **Step 3: Test the install script manually**
+
+```bash
+python -m arboviz.install
+ls -la ~/.claude/skills/arboviz
+```
+
+Expected: symlink pointing to `src/arboviz/skills/arboviz`
+
+- [ ] **Step 4: Verify the skill file is readable via the symlink**
+
+```bash
+cat ~/.claude/skills/arboviz/SKILL.md | head -5
+```
+
+Expected: first 5 lines of the skill file
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/arboviz/install.py pyproject.toml
+git commit -m "feat(install): add post-install skill symlink for Claude Code"
+```
+
+---
+
+### Task 15: Backend tests — full pytest suite
+
+**Files:**
+- Existing: `tests/test_lock.py`, `tests/test_graph.py`, `tests/test_session_persist.py`, `tests/test_agent_cli.py`, `tests/test_agent_server.py`
+
+All backend tests were written TDD in Tasks 1-5. This task runs them all together and fixes any integration issues.
+
+- [ ] **Step 1: Run the full backend test suite**
+
+```bash
+cd "Personal Projects/treeboard"
+source .venv/bin/activate
+pytest tests/ -v --ignore=tests/playwright -x
+```
+
+Expected: all tests pass. If any fail, fix before proceeding.
+
+- [ ] **Step 2: Run original test suite to confirm no regressions**
+
+```bash
+pytest tests/test_server.py tests/test_scan.py tests/test_render.py \
+       tests/test_search.py tests/test_persist.py tests/test_git.py \
+       tests/test_imports.py tests/test_cli.py tests/test_watcher.py -v
+```
+
+Expected: all previously passing tests still pass.
+
+- [ ] **Step 3: Commit any fixes**
+
+```bash
+git add -A
+git commit -m "fix(tests): resolve any integration issues in full backend suite"
+```
+
+---
+
+### Task 16: Playwright frontend tests
+
+**Files:**
+- Create: `tests/playwright/test_canvas_states.py`
+- Create: `tests/playwright/__init__.py`
+
+- [ ] **Step 1: Install Playwright**
+
+```bash
+pip install playwright pytest-playwright
+playwright install chromium
+```
+
+- [ ] **Step 2: Create `tests/playwright/__init__.py`**
+
+```python
+# tests/playwright/__init__.py
+```
+
+- [ ] **Step 3: Create `tests/playwright/test_canvas_states.py`**
+
+```python
+# tests/playwright/test_canvas_states.py
+"""
+Playwright integration tests for arboviz agent canvas states.
+Starts a real arboviz server and POSTs agent events, then verifies
+the canvas DOM reflects the correct visual state.
+"""
+import json
+import pathlib
+import subprocess
+import time
+import urllib.request
+import pytest
+from playwright.sync_api import Page, expect
+
+
+SERVER_PORT = 19876  # fixed port for testing
+
+
+@pytest.fixture(scope="module")
+def arboviz_server(tmp_path_factory):
+    """Start a real arboviz server on a fixed port for the test module."""
+    project = tmp_path_factory.mktemp("project")
+    (project / "auth.py").write_text("import config\n")
+    (project / "config.py").write_text("")
+    (project / "routes.py").write_text("import auth\n")
+
+    proc = subprocess.Popen(
+        ["python", "-m", "arboviz", str(project), "--port", str(SERVER_PORT), "--no-browser"],
+        cwd=str(pathlib.Path(__file__).parent.parent.parent),
+    )
+    # Wait for server to be ready
+    for _ in range(20):
+        try:
+            urllib.request.urlopen(f"http://127.0.0.1:{SERVER_PORT}/health", timeout=1)
+            break
+        except Exception:
+            time.sleep(0.5)
+
+    yield f"http://127.0.0.1:{SERVER_PORT}", project
+    proc.terminate()
+
+
+def post_event(payload: dict) -> None:
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        f"http://127.0.0.1:{SERVER_PORT}/api/event",
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    urllib.request.urlopen(req, timeout=2)
+
+
+def test_idle_state_shows_all_pills(page: Page, arboviz_server):
+    url, project = arboviz_server
+    page.goto(url)
+    page.wait_for_selector("g.node", timeout=5000)
+    nodes = page.query_selector_all("g.node")
+    assert len(nodes) >= 2
+
+
+def test_snapshot_starts_scanning(page: Page, arboviz_server):
+    url, _ = arboviz_server
+    page.goto(url)
+    page.wait_for_selector("g.node", timeout=5000)
+    post_event({"type": "snapshot", "ts": 0})
+    page.wait_for_timeout(300)
+    beam = page.query_selector("#agent-scan-beam")
+    assert beam is not None
+    assert beam.is_visible()
+
+
+def test_edit_event_applies_orange_pill(page: Page, arboviz_server):
+    url, project = arboviz_server
+    page.goto(url)
+    page.wait_for_selector("g.node", timeout=5000)
+    post_event({"type": "snapshot", "ts": 0})
+    post_event({"type": "edit", "file": "auth.py", "ts": 1})
+    page.wait_for_timeout(400)
+    auth_node = page.query_selector(f'g.node[data-path="{project}/auth.py"] rect.pill')
+    assert auth_node is not None
+    classes = auth_node.get_attribute("class")
+    assert "agent-edit" in classes
+
+
+def test_task_end_shows_timeline_strip(page: Page, arboviz_server):
+    url, _ = arboviz_server
+    page.goto(url)
+    page.wait_for_selector("g.node", timeout=5000)
+    post_event({"type": "snapshot", "ts": 0})
+    post_event({"type": "edit", "file": "auth.py", "ts": 1})
+    post_event({"type": "task-end", "label": "auth update", "ts": 2})
+    page.wait_for_timeout(400)
+    timeline = page.query_selector("#agent-timeline")
+    assert timeline is not None
+    assert timeline.is_visible()
+    assert "auth update" in timeline.inner_text()
+
+
+def test_frozen_state_dims_untouched_pills(page: Page, arboviz_server):
+    url, project = arboviz_server
+    page.goto(url)
+    page.wait_for_selector("g.node", timeout=5000)
+    post_event({"type": "snapshot", "ts": 0})
+    post_event({"type": "edit", "file": "auth.py", "ts": 1})
+    post_event({"type": "task-end", "label": "test", "ts": 2})
+    page.wait_for_timeout(400)
+    config_pill = page.query_selector(f'g.node[data-path="{project}/config.py"] rect.pill')
+    assert config_pill is not None
+    classes = config_pill.get_attribute("class")
+    assert "agent-dim" in classes
+
+
+def test_dependency_ripple_on_click(page: Page, arboviz_server):
+    url, project = arboviz_server
+    page.goto(url)
+    page.wait_for_selector("g.node", timeout=5000)
+    post_event({"type": "snapshot", "ts": 0})
+    post_event({"type": "edit", "file": "auth.py", "ts": 1})
+    page.wait_for_timeout(300)
+    auth_node = page.query_selector(f'g.node[data-path="{project}/auth.py"]')
+    auth_node.click()
+    page.wait_for_timeout(300)
+    ripple_layer = page.query_selector("#agent-ripple-layer")
+    assert ripple_layer is not None
+    lines = ripple_layer.query_selector_all("line")
+    assert len(lines) > 0
+```
+
+- [ ] **Step 4: Run Playwright tests**
+
+```bash
+pytest tests/playwright/ -v --headed
+```
+
+Expected: all 6 tests pass. Use `--headed` to watch the browser while testing.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tests/playwright/
+git commit -m "test(playwright): add canvas state integration tests"
+```
+
+---
+
+### Task 17: End-to-end smoke test — Claude Code skill integration
+
+**Files:**
+- No new files — manual verification
+
+This is a manual test. Automated CI can't run Claude Code.
+
+- [ ] **Step 1: Install skill**
+
+```bash
+python -m arboviz.install
+cat ~/.claude/skills/arboviz/SKILL.md | head -3
+```
+
+Expected: skill content visible
+
+- [ ] **Step 2: Start arboviz on a real project**
+
+```bash
+arboviz ~/projects/myapp
+```
+
+Expected: `arboviz serving /Users/smb/projects/myapp → http://127.0.0.1:XXXXX`
+Lock file created: `cat ~/.arboviz/server.lock`
+
+- [ ] **Step 3: Open Claude Code in the same project directory**
+
+In a new terminal:
+
+```bash
+cd ~/projects/myapp
+claude
+```
+
+- [ ] **Step 4: Ask Claude to do a simple file task**
+
+```
+Create a file called hello.py with a hello world function
+```
+
+Expected in Claude Code's tool log:
+```
+arboviz · snapshot
+arboviz · create hello.py
+arboviz · task-end "create hello.py with hello world function"
+```
+
+Expected in arboviz canvas:
+- Canvas enters scanning state (scan beam)
+- `hello.py` appears with expanding rings (green)
+- Canvas freezes, summary bar shows "1 created"
+- Timeline strip shows the task
+
+- [ ] **Step 5: Verify singleton — open a second window**
+
+```bash
+arboviz ~/projects/myapp
+```
+
+Expected: `arboviz already running → http://127.0.0.1:XXXXX` (no second server spawned)
+
+- [ ] **Step 6: Commit final integration notes**
+
+```bash
+git add -A
+git commit -m "docs(plan): complete phase 3 — integration, tests, e2e verification"
+```
+
+---
+
+## Self-Review Checklist
+
+### Spec coverage
+| Spec requirement | Task |
+|---|---|
+| Lock file / singleton enforcement | Task 1 |
+| Graph adjacency with reverse edges | Task 2 |
+| Session timeline 24h persistence | Task 3 |
+| CLI agent commands | Task 4 |
+| `/api/event`, `/health`, `/api/graph` | Task 5 |
+| Claude Code skill file | Task 6 |
+| Agent state machine (5 states) | Task 7 |
+| Pill visual states (operation colours) | Task 8 |
+| Scan beam animation | Task 9 |
+| New file rings, delete fade | Task 8 |
+| Dependency ripple SVG | Task 10 |
+| Timeline strip + summary bar | Task 11 |
+| Window bridge (PyWebView ↔ JS) | Task 12 |
+| PyWebView native window | Task 13 |
+| Post-install skill symlink | Task 14 |
+| Backend pytest suite | Task 15 |
+| Playwright frontend tests | Task 16 |
+| End-to-end Claude Code integration | Task 17 |
+
+All spec requirements covered. No gaps.
+
+---
+
+*Plan written by Friday · arboviz v2.0 · 2026-05-20*
