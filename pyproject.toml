@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "arboviz"
-version = "0.1.0"
-description = "Cinematic pyramid visualiser for any directory tree."
+version = "2.0.0"
+description = "Visual cockpit for Claude Code — spatial canvas showing live agent file activity."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -14,15 +14,18 @@ authors = [
 ]
 keywords = ["directory", "tree", "visualiser", "file-browser", "cli"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Environment :: Console",
+  "Environment :: Web Environment",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development",
   "Topic :: Utilities",
 ]
 dependencies = [
