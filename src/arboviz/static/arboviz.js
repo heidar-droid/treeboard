@@ -22,6 +22,7 @@ import { applyAgentPillStates, animateNewFile, animateDeleteFile } from "/static
 import { setupScanBeam } from "/static/scan-beam.js";
 import { setupDepRipple, loadGraph } from "/static/dep-ripple.js";
 import { setupTimeline } from "/static/timeline.js";
+import { setupHistoryClock } from "/static/history-clock.js";
 import { windowBridge } from "/static/window-bridge.js";
 
 const board = document.getElementById("board");
@@ -370,6 +371,7 @@ setupPopovers(viewport);
 // ── Agent cockpit wiring ──────────────────────────────────────
 const scanBeam = setupScanBeam(viewport);
 const timeline = setupTimeline(viewport);
+setupHistoryClock(viewport, agentState);
 const depRipple = setupDepRipple(board, () => agentState.canvasState);
 loadGraph();
 
