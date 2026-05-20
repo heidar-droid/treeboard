@@ -82,8 +82,15 @@ function renderStrip(strip, timeline, agentState) {
     item.appendChild(document.createTextNode(entry.label));
 
     item.addEventListener("click", () => {
-      // Clicking the most-recent entry always returns to live view
-      if (i === timeline.length - 1) {
+      const isLast = i === timeline.length - 1;
+      // Last entry has two meanings depending on current view:
+      //   - already live → no-op (already showing this footprint live)
+      //   - viewing a past task → return to live
+      // Clicking any non-last entry always freezes onto that task.
+      if (isLast && agentState.activeFootprint === null) {
+        return;
+      }
+      if (isLast) {
         agentState.viewLive();
         return;
       }
@@ -95,20 +102,26 @@ function renderStrip(strip, timeline, agentState) {
 }
 
 function renderSummaryBar(bar, sb) {
-  bar.innerHTML = "";
+  // Build via DOM instead of innerHTML interpolation. The integer counts
+  // are safe today, but the label is user-controllable and a future
+  // change that adds another string field would silently introduce XSS
+  // via the current `${sb.foo}` pattern. textContent kills that class
+  // of bug at the source.
+  bar.replaceChildren();
+  const span = (color, text) => {
+    const s = document.createElement("span");
+    s.style.color = color;
+    s.textContent = text;
+    return s;
+  };
+  const sep = () => span("#21262d", " · ");
   const parts = [];
-  if (sb.edited)   parts.push(`<span style="color:#f0883e">${sb.edited} edited</span>`);
-  if (sb.created)  parts.push(`<span style="color:#3fb950">${sb.created} created</span>`);
-  if (sb.deleted)  parts.push(`<span style="color:#f85149">${sb.deleted} deleted</span>`);
-  parts.push(`<span style="color:#30363d">${escapeHtml(sb.label || "")}</span>`);
-  bar.innerHTML = parts.join('<span style="color:#21262d"> · </span>');
-}
-
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+  if (sb.edited)  parts.push(span("#f0883e", `${sb.edited} edited`));
+  if (sb.created) parts.push(span("#3fb950", `${sb.created} created`));
+  if (sb.deleted) parts.push(span("#f85149", `${sb.deleted} deleted`));
+  parts.push(span("#30363d", sb.label || ""));
+  for (let i = 0; i < parts.length; i++) {
+    if (i > 0) bar.appendChild(sep());
+    bar.appendChild(parts[i]);
+  }
 }
