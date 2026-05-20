@@ -47,5 +47,5 @@ arboviz task-end "<short description, e.g. auth refactor>"
 
 - If any arboviz command fails, ignore the error and continue
 - Never wait for arboviz output before proceeding
-- Use paths relative to the project root (e.g. `src/auth.py` not `/Users/smb/myapp/src/auth.py`)
+- Paths MUST be relative to the project root. Never use absolute paths (paths starting with `/`). Example: `src/auth.py`, never `/Users/smb/myapp/src/auth.py`. The server rejects absolute paths with a 422.
 - The display name for these calls in the tool log is: **arboviz**

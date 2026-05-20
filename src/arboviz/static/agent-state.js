@@ -11,6 +11,7 @@ export const agentState = {
   timeline: [],              // [{label, ts, footprint}]
   activeFootprint: null,     // footprint being reviewed (null = live)
   summaryBar: null,          // {edited, created, deleted, label, duration_s}
+  _lastSeenTs: 0,            // max ts ever processed — used for dedup on reconnect
 
   _notify() {
     for (const fn of _subs) fn(agentState);
@@ -23,6 +24,15 @@ export const agentState = {
 
   handle(event) {
     const { type, file, label, ts } = event;
+
+    // Dedup: when /api/buffer is replayed after a WebSocket reconnect, every
+    // event we've already processed comes back through. Reject anything at or
+    // before the last ts we've seen. ts === 0 is treated as "no timestamp"
+    // (test fixtures) and always allowed through.
+    if (typeof ts === "number" && ts > 0) {
+      if (ts <= this._lastSeenTs) return;
+      this._lastSeenTs = ts;
+    }
 
     if (type === "snapshot") {
       this.canvasState = "scanning";
@@ -53,6 +63,9 @@ export const agentState = {
         created: footprint.created.length,
         deleted: footprint.deleted.length,
       };
+      // If the user was inspecting a past task when a new one completes,
+      // auto-return them to the live view so they actually see the new state.
+      this.activeFootprint = null;
     }
     this._notify();
   },

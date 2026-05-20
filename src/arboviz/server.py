@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import pathlib
 import shutil
 import subprocess
+import sys
 import time
+import traceback
 from contextlib import asynccontextmanager
 
 from typing import Optional
@@ -339,6 +342,22 @@ def build_app(
         _graph: dict = build_graph(root_p)
     except Exception:
         _graph = {}
+        # Persist the traceback so the user can investigate without losing the
+        # error; surface a one-liner so it isn't completely silent.
+        try:
+            log_dir = pathlib.Path.home() / ".arboviz"
+            log_dir.mkdir(parents=True, exist_ok=True)
+            with (log_dir / "arboviz.log").open("a", encoding="utf-8") as fh:
+                fh.write(f"[{time.strftime('%Y-%m-%dT%H:%M:%S')}] build_graph failed for {root_p}\n")
+                fh.write(traceback.format_exc())
+                fh.write("\n")
+        except Exception:
+            pass
+        print(
+            "arboviz: import graph parse failed — dependency ripple will be "
+            "limited. Details in ~/.arboviz/arboviz.log",
+            file=sys.stderr,
+        )
 
     @app.get("/health")
     async def health():
@@ -346,21 +365,42 @@ def build_app(
 
     @app.post("/api/event")
     async def agent_event(event: AgentEvent):
+        # Canonicalize file paths ONCE here so the frontend's `data-path`
+        # (always absolute, set by render.js from the resolved scan tree)
+        # matches the path key used in agentState.agentOps. Without this the
+        # frontend would never match an op to a pill and no pill would ever
+        # change color in production.
+        if event.file and event.type in {"read", "edit", "create", "delete"}:
+            raw = event.file
+            # Reject absolute paths — the SKILL.md contract requires relative
+            # paths. Absolute paths from outside the project root would let an
+            # external caller flood the canvas with unrelated activity.
+            if raw.startswith("/"):
+                raise HTTPException(
+                    422,
+                    "file path must be relative to the project root "
+                    "(e.g. 'src/auth.py', not '/abs/path/...')",
+                )
+            event.file = str((root_p / raw).resolve())
+
         payload = event.model_dump()
 
         if event.type == "create" and event.file:
-            full = str(root_p / event.file)
+            # parse_imports walks the whole tree — push it off the event loop
+            # so the CLI's 1-second timeout isn't exceeded on medium repos.
             try:
-                update_graph_for_file(_graph, full, root_p)
+                await asyncio.to_thread(update_graph_for_file, _graph, event.file, root_p)
             except Exception:
                 pass
         elif event.type == "delete" and event.file:
-            full = str(root_p / event.file)
-            remove_from_graph(_graph, full)
+            try:
+                remove_from_graph(_graph, event.file)
+            except Exception:
+                pass
 
         _agent_session.handle(event.type, event.file, event.label)
 
-        # Persist completed task to ~/.arboviz/sessions/YYYY-MM-DD.json
+        # Persist completed task to ~/.arboviz/sessions/<date>-<sha>.json
         if event.type == "task-end" and _agent_session.tasks:
             try:
                 last_task = _agent_session.tasks[-1]
@@ -388,8 +428,24 @@ def build_app(
         return _graph
 
     @app.get("/api/buffer")
-    async def get_buffer():
-        return _EVENT_BUFFER
+    async def get_buffer(since: int = Query(0)):
+        # `since` lets the client request only events newer than the most
+        # recent `ts` it has already processed, so a WebSocket reconnect mid-
+        # session no longer re-feeds already-seen task-end events (which the
+        # frontend would otherwise append to the timeline a second time).
+        if since <= 0:
+            return _EVENT_BUFFER
+        return [e for e in _EVENT_BUFFER if e.get("ts", 0) > since]
+
+    # Test-only reset endpoint. Gated behind ARBOVIZ_TEST_MODE so it never
+    # appears in production. Used by the e2e fixtures to give each test a
+    # clean canvas without paying the cost of spawning a fresh server process.
+    if os.environ.get("ARBOVIZ_TEST_MODE") == "1":
+        @app.post("/api/reset")
+        async def reset_state():
+            _EVENT_BUFFER.clear()
+            _agent_session.__init__()
+            return {"ok": True}
 
     @app.get("/")
     def index():

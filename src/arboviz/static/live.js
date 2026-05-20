@@ -11,9 +11,12 @@ export function setupLiveUpdates(onChange) {
 
     ws.addEventListener("open", async () => {
       backoff = 1000;
-      // Replay buffered agent events on reconnect
+      // Replay buffered agent events on reconnect, but only those newer than
+      // the last one we've already processed — otherwise every blip in the
+      // socket re-applies the whole buffer and duplicates timeline entries.
       try {
-        const r = await fetch("/api/buffer");
+        const since = agentState._lastSeenTs || 0;
+        const r = await fetch(`/api/buffer?since=${since}`);
         const events = await r.json();
         for (const evt of events) {
           if (evt.kind === "agent" || evt.type) agentState.handle(evt);
