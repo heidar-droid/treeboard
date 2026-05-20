@@ -1,13 +1,27 @@
 import pathlib
+import subprocess
 import pytest
 from fastapi.testclient import TestClient
 from arboviz.server import build_app
 
 
 @pytest.fixture
-def client(tmp_path):
-    app = build_app(tmp_path)
-    return TestClient(app)
+def tmp_repo(tmp_path):
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "config", "user.email", "t@t"], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "config", "user.name", "t"], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "config", "commit.gpgsign", "false"], check=True)
+    (tmp_path / "a.py").write_text("one\ntwo\nthree\n")
+    subprocess.run(["git", "-C", str(tmp_path), "add", "a.py"], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "commit", "-q", "-m", "init"], check=True)
+    return tmp_path
+
+
+@pytest.fixture
+def client(tmp_repo):
+    app = build_app(tmp_repo, respect_gitignore=False, include_dotfiles=True)
+    with TestClient(app) as c:
+        yield c
 
 
 def test_health_returns_200(client):
@@ -205,3 +219,29 @@ def test_agent_session_resets_current_task_after_task_end():
         f"second task should only contain b.py, got "
         f"{s.tasks[1]['footprint']['edited']}"
     )
+
+
+# ── Task 2: diff stat plumbed through AgentEvent ───────────────────────────
+
+def test_agent_event_carries_diff_for_edit(tmp_repo, client):
+    f = tmp_repo / "a.py"
+    f.write_text("one\ntwo\nTHREE\nfour\n")
+    r = client.post("/api/event", json={"type": "edit", "file": "a.py", "ts": 1})
+    assert r.status_code == 200
+    buf = client.get("/api/buffer").json()
+    edit = next(e for e in buf if e["type"] == "edit")
+    assert edit["diff"] is not None
+    assert edit["diff"]["added"] >= 1
+
+
+def test_agent_event_read_has_no_diff(tmp_repo, client):
+    (tmp_repo / "a.py").write_text("x\n")
+    client.post("/api/event", json={"type": "read", "file": "a.py", "ts": 2})
+    buf = client.get("/api/buffer").json()
+    read = next(e for e in buf if e["type"] == "read")
+    assert read.get("diff") is None
+
+
+def test_agent_event_diff_field_optional_for_legacy_clients(client):
+    r = client.post("/api/event", json={"type": "task-end", "label": "x", "ts": 3})
+    assert r.status_code == 200

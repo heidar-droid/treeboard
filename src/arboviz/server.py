@@ -34,11 +34,17 @@ def _has_parent_segment(raw: str) -> bool:
     return any(p == ".." for p in norm.split("/"))
 
 
+class DiffStat(BaseModel):
+    added: int
+    removed: int
+
+
 class AgentEvent(BaseModel):
     type: str
     file: Optional[str] = None
     label: Optional[str] = None
     ts: int = 0
+    diff: Optional[DiffStat] = None    # populated server-side for edit/create
 
     @field_validator("type")
     @classmethod
@@ -57,6 +63,7 @@ from arboviz.imports import parse_imports
 from arboviz.persist import load_json, save_json, _RW_LOCK, append_task_to_session
 from arboviz.graph import build_graph, update_graph_for_file, remove_from_graph
 from arboviz.session import AgentSession
+from arboviz.git_diff_stat import diff_stat
 
 
 def build_app(
@@ -438,6 +445,17 @@ def build_app(
                     f"path escapes project root: {event.file!r}",
                 )
             event.file = resolved_str
+
+        # Populate diff stat for edit/create events. Path is already canonical;
+        # convert back to a relative form for git's CLI.
+        if event.type in ("edit", "create") and event.file:
+            try:
+                rel = str(pathlib.Path(event.file).relative_to(root_p))
+                stat = diff_stat(root_p, rel)
+                if stat is not None:
+                    event.diff = DiffStat(added=stat.added, removed=stat.removed)
+            except Exception:
+                pass  # diff is best-effort; never fail the request
 
         payload = event.model_dump()
 
