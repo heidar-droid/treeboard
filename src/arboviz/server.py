@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_validator
@@ -383,8 +383,14 @@ def build_app(
         )
 
     @app.get("/health")
-    async def health():
-        return {"status": "ok"}
+    async def health(response: Response):
+        # Sentinel header + body field let `lock._server_responds` distinguish
+        # a live arboviz server from an unrelated local HTTP server that
+        # happens to expose `/health` (FastAPI/Flask/k8s probes all do). Without
+        # this, a recycled port owned by a foreign server fools the liveness
+        # check and the CLI points the user at the wrong URL.
+        response.headers["X-Arboviz"] = "1"
+        return {"status": "ok", "service": "arboviz"}
 
     @app.post("/api/event")
     async def agent_event(event: AgentEvent):

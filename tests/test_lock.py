@@ -200,8 +200,11 @@ def test_server_responds_waits_for_slow_startup(tmp_path):
                 first["served"] = True
                 _t.sleep(0.6)  # simulate slow uvicorn warmup
             self.send_response(200)
+            # Include the arboviz sentinel so the probe accepts this as a
+            # live arboviz server — header check is mandatory post-iter4.
+            self.send_header("X-Arboviz", "1")
             self.end_headers()
-            self.wfile.write(b"ok")
+            self.wfile.write(b'{"status":"ok","service":"arboviz"}')
 
         def log_message(self, *_a, **_k):
             pass
@@ -212,6 +215,36 @@ def test_server_responds_waits_for_slow_startup(tmp_path):
         t.start()
         try:
             assert _server_responds(port) is True
+        finally:
+            srv.shutdown()
+
+
+def test_server_responds_rejects_foreign_server_without_sentinel(tmp_path):
+    """A non-arboviz HTTP server that happens to return 200 on /health (e.g.
+    FastAPI/Flask/k8s readiness probe on a recycled port) must NOT be treated
+    as a live arboviz server."""
+    from arboviz.lock import _server_responds
+    import http.server
+    import socketserver
+
+    class ForeignHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            # 200 OK, but no X-Arboviz header — this is a different service.
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"status":"ok"}')
+
+        def log_message(self, *_a, **_k):
+            pass
+
+    with socketserver.TCPServer(("127.0.0.1", 0), ForeignHandler) as srv:
+        port = srv.server_address[1]
+        t = threading.Thread(target=srv.serve_forever, daemon=True)
+        t.start()
+        try:
+            # Must return False — header sentinel absent.
+            assert _server_responds(port, timeout=0.5) is False
         finally:
             srv.shutdown()
 

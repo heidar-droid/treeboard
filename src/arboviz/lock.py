@@ -69,7 +69,10 @@ def _server_responds(port: int, timeout: float = 1.5) -> bool:
             with urllib.request.urlopen(
                 f"http://127.0.0.1:{port}/health", timeout=timeout
             ) as r:
-                if r.status == 200:
+                # Sentinel header proves it's actually arboviz on the other
+                # end, not a foreign local server (FastAPI/Flask/k8s probe)
+                # that happens to expose `/health` after PID/port rollover.
+                if r.status == 200 and r.headers.get("X-Arboviz") == "1":
                     return True
         except Exception:
             pass

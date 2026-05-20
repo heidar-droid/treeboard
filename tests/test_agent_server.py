@@ -16,6 +16,17 @@ def test_health_returns_200(client):
     assert r.json()["status"] == "ok"
 
 
+def test_health_returns_arboviz_sentinel(client):
+    """The /health endpoint must include the X-Arboviz header AND a
+    `service: arboviz` body field so `lock._server_responds` can distinguish
+    a real arboviz server from any other local server that happens to
+    expose /health (FastAPI/Flask/k8s probes all do)."""
+    r = client.get("/health")
+    assert r.status_code == 200
+    assert r.headers.get("X-Arboviz") == "1"
+    assert r.json().get("service") == "arboviz"
+
+
 def test_post_read_event(client):
     r = client.post("/api/event", json={"type": "read", "file": "src/auth.py", "ts": 0})
     assert r.status_code == 200
