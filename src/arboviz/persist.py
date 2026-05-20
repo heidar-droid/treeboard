@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import pathlib
 import threading
+from datetime import date
 
 _MISSING = object()
 _RW_LOCK = threading.Lock()
@@ -39,3 +40,39 @@ def save_json(root: pathlib.Path, name: str, data) -> None:
     except Exception:
         tmp.unlink(missing_ok=True)
         raise
+
+
+_SESSIONS_DIR = pathlib.Path.home() / ".arboviz" / "sessions"
+_SESSION_LOCK = threading.Lock()
+
+
+def session_file_path() -> pathlib.Path:
+    return _SESSIONS_DIR / f"{date.today()}.json"
+
+
+def load_session(project: str) -> dict:
+    """Load today's session for this project. Returns empty session on any failure."""
+    _SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
+    p = session_file_path()
+    if not p.exists():
+        return {"project": project, "tasks": []}
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        if data.get("project") != project:
+            return {"project": project, "tasks": []}
+        return data
+    except (json.JSONDecodeError, OSError):
+        p.unlink(missing_ok=True)
+        return {"project": project, "tasks": []}
+
+
+def append_task_to_session(project: str, task: dict) -> None:
+    """Append a completed task record to today's session file atomically."""
+    with _SESSION_LOCK:
+        _SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
+        session = load_session(project)
+        session["tasks"].append(task)
+        p = session_file_path()
+        tmp = p.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(session, indent=2), encoding="utf-8")
+        tmp.replace(p)
