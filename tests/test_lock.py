@@ -2,7 +2,6 @@ import os
 import json
 import pathlib
 import pytest
-from unittest.mock import patch
 
 from arboviz.lock import write_lock, read_lock, clear_lock, existing_server
 
