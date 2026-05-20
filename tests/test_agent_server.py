@@ -129,6 +129,35 @@ def test_path_traversal_rejected(client):
     assert r.status_code == 422
 
 
+def test_path_traversal_via_nonexistent_segment_rejected(client):
+    """`Path.resolve()` (non-strict) does NOT collapse `..` when intermediate
+    components don't exist on disk. A pre-resolve guard must catch this."""
+    r = client.post(
+        "/api/event",
+        json={"type": "edit", "file": "nonexistent/../../etc/passwd", "ts": 1},
+    )
+    assert r.status_code == 422
+
+
+def test_path_with_inner_parent_segment_rejected(client):
+    """Any `..` segment is rejected — even if the final resolved path
+    would still land inside root_p. Easier to be strict than to audit."""
+    r = client.post(
+        "/api/event",
+        json={"type": "edit", "file": "src/foo/../bar.py", "ts": 1},
+    )
+    assert r.status_code == 422
+
+
+def test_clean_relative_path_accepted(client):
+    """Sanity: a clean relative path with no parent segments still works."""
+    r = client.post(
+        "/api/event",
+        json={"type": "edit", "file": "src/foo.py", "ts": 1},
+    )
+    assert r.status_code == 200
+
+
 def test_session_resets_current_task_after_task_end(client, tmp_path):
     """A read/edit arriving without a preceding snapshot must NOT accumulate
     into the previous task's footprint."""

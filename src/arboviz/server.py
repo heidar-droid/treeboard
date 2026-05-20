@@ -21,6 +21,19 @@ from starlette.middleware.base import BaseHTTPMiddleware
 _AGENT_EVENT_TYPES = {"read", "edit", "create", "delete", "snapshot", "task-end"}
 
 
+def _has_parent_segment(raw: str) -> bool:
+    """Return True if any segment of `raw` is the parent-directory token `..`.
+
+    Splits on both `/` and the OS path separator so we catch traversal on
+    every platform. Used as a defense-in-depth pre-check before resolving
+    a path — `Path.resolve()` without `strict=True` does NOT collapse `..`
+    when intermediate components don't exist, so a poisoned path could
+    otherwise survive the post-resolve `relative_to` check.
+    """
+    norm = raw.replace("\\", "/")
+    return any(p == ".." for p in norm.split("/"))
+
+
 class AgentEvent(BaseModel):
     type: str
     file: Optional[str] = None
@@ -102,10 +115,20 @@ def build_app(
     app.state.include_dotfiles = include_dotfiles
 
     def _safe_path(path: str) -> pathlib.Path:
+        # Defense in depth: reject `..` segments before resolve, since
+        # Path.resolve() does not collapse parent-segments when intermediate
+        # components don't exist on disk. Then verify the resolved path
+        # stays under root_p both by relative_to AND string-prefix check.
+        if _has_parent_segment(path):
+            raise HTTPException(403, "path outside scan root")
         p = pathlib.Path(path).resolve()
         try:
             p.relative_to(root_p)
         except ValueError:
+            raise HTTPException(403, "path outside scan root")
+        p_str = str(p)
+        root_str = str(root_p)
+        if not (p_str == root_str or p_str.startswith(root_str + os.sep)):
             raise HTTPException(403, "path outside scan root")
         return p
 
@@ -381,12 +404,18 @@ def build_app(
                     "file path must be relative to the project root "
                     "(e.g. 'src/auth.py', not '/abs/path/...')",
                 )
+            # Defense in depth: reject any `..` segment BEFORE resolve.
+            # Path.resolve() without strict=True does NOT collapse parent
+            # segments when intermediate components don't exist on disk —
+            # so `nonexistent/../../etc/passwd` may survive resolve with
+            # the `..` still present, defeating the relative_to check.
+            if _has_parent_segment(raw):
+                raise HTTPException(
+                    422,
+                    f"path contains parent segment: {event.file!r}",
+                )
             resolved = (root_p / raw).resolve()
-            # Reject paths that escape the project root via `..` traversal.
-            # No file I/O happens here, so this isn't a security boundary —
-            # but the resulting absolute paths would never match any pill's
-            # data-path attribute and would poison the session JSON with
-            # entries that no view can render.
+            # Belt-and-suspenders: relative_to AND string-prefix check.
             try:
                 resolved.relative_to(root_p)
             except ValueError:
@@ -394,7 +423,15 @@ def build_app(
                     422,
                     f"path escapes project root: {event.file!r}",
                 )
-            event.file = str(resolved)
+            resolved_str = str(resolved)
+            root_str = str(root_p)
+            if not (resolved_str == root_str
+                    or resolved_str.startswith(root_str + os.sep)):
+                raise HTTPException(
+                    422,
+                    f"path escapes project root: {event.file!r}",
+                )
+            event.file = resolved_str
 
         payload = event.model_dump()
 
@@ -462,11 +499,26 @@ def build_app(
             # the module-scoped e2e fixture leaks across tests and produces
             # false positives/negatives in graph-dependent assertions.
             _graph.clear()
+            graph_error: str | None = None
             try:
                 _graph.update(build_graph(root_p))
-            except Exception:
-                pass
-            return {"ok": True}
+            except Exception as e:
+                graph_error = repr(e)
+                # Persist so downstream dep-ripple failures aren't a
+                # mystery. Best-effort — never raise from reset().
+                try:
+                    log_dir = pathlib.Path.home() / ".arboviz"
+                    log_dir.mkdir(parents=True, exist_ok=True)
+                    with (log_dir / "arboviz.log").open("a", encoding="utf-8") as fh:
+                        fh.write(
+                            f"[{time.strftime('%Y-%m-%dT%H:%M:%S')}] "
+                            f"reset graph rebuild failed: {graph_error}\n"
+                        )
+                        fh.write(traceback.format_exc())
+                        fh.write("\n")
+                except Exception:
+                    pass
+            return {"ok": True, "graph_error": graph_error}
 
     @app.get("/")
     def index():
