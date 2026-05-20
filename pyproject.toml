@@ -38,19 +38,24 @@ Repository = "https://github.com/heidar-droid/arboviz"
 "Bug Tracker" = "https://github.com/heidar-droid/arboviz/issues"
 
 [project.optional-dependencies]
+native = ["pywebview>=5.0"]
 dev = [
   "pytest>=8.0",
   "httpx>=0.27",
   "pytest-asyncio>=0.23",
+  "playwright>=1.40",
+  "pytest-playwright>=0.4",
 ]
 
 [project.scripts]
 arboviz = "arboviz.cli:main"
+arboviz-install = "arboviz.install:install_skill"
 
 [tool.hatch.build]
 include = [
   "src/arboviz/**/*.py",
   "src/arboviz/static/**/*",
+  "src/arboviz/skills/**/*",
 ]
 
 [tool.hatch.build.targets.wheel]
