@@ -136,10 +136,12 @@ def test_frozen_state_dims_untouched_pills(page: Page, arboviz_server):
 
 
 @pytest.mark.xfail(
-    reason="Path normalization mismatch: scan.py emits data-path as raw "
-           "tmp path (e.g. /var/folders/...) while graph.py resolves to "
-           "/private/var/folders/... — dep-ripple lookup misses. "
-           "Fix needed in graph.py or scan.py to align path normalization.",
+    reason="Click handler interaction: dep-ripple handler on board doesn't fire "
+           "during Playwright .click() despite agentState.canvasState='editing' "
+           "and graph entry present. Likely another click listener (multiselect, "
+           "popover, or wireInteractions) intercepts before dep-ripple. Manual "
+           "browser clicks may work; needs investigation of event listener order. "
+           "Graph path normalization (the prior xfail reason) is fixed.",
     strict=True,
 )
 def test_dependency_ripple_on_click(page: Page, arboviz_server):

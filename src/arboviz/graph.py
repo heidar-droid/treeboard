@@ -6,7 +6,7 @@ from arboviz.imports import parse_imports
 
 def build_graph(root: pathlib.Path) -> dict[str, dict]:
     """Return {abs_path: {"imports": [...], "imported_by": [...]}} for all source files."""
-    root = pathlib.Path(root).resolve()
+    root = pathlib.Path(root)  # no resolve — match scan.py's path format
     imports_map = parse_imports(root)
 
     imported_by: dict[str, list[str]] = {k: [] for k in imports_map}
@@ -29,7 +29,7 @@ def build_graph(root: pathlib.Path) -> dict[str, dict]:
 
 def update_graph_for_file(graph: dict, file_path: str, root: pathlib.Path) -> dict:
     """Re-parse one file and splice its edges into the existing graph."""
-    root = pathlib.Path(root).resolve()
+    root = pathlib.Path(root)  # no resolve
     fresh = parse_imports(root)
 
     for target in graph.get(file_path, {}).get("imports", []):
