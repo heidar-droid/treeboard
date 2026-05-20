@@ -48,5 +48,6 @@ def test_agent_command_exits_silently_when_server_down():
 
 
 def test_agent_command_exits_silently_when_no_lock(tmp_path, monkeypatch):
-    monkeypatch.setattr("arboviz.lock._LOCK_FILE", tmp_path / "nonexistent.lock")
+    monkeypatch.setattr("arboviz.lock._LOCKS_DIR", tmp_path / "locks")
+    monkeypatch.chdir(tmp_path)
     run_agent_command("read", file="src/auth.py", label=None)  # must not raise
