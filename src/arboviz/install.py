@@ -33,13 +33,54 @@ def install_skill() -> None:
 
     CLAUDE_SKILLS.mkdir(parents=True, exist_ok=True)
 
-    # Remove existing entry (broken symlink, real link, or directory)
-    if SKILL_LINK.is_symlink() or SKILL_LINK.exists():
+    # Remove existing entry — but only after confirming it's safe.
+    if SKILL_LINK.is_symlink():
+        # Symlinks are cheap to replace; just unlink and re-create below.
         try:
             SKILL_LINK.unlink()
-        except IsADirectoryError:
-            import shutil
-            shutil.rmtree(SKILL_LINK)
+        except OSError:
+            pass
+    elif SKILL_LINK.exists() and SKILL_LINK.is_dir():
+        # Real directory at the destination — could be a user-authored skill.
+        # Read its SKILL.md frontmatter to verify it's actually ours before
+        # rmtree'ing anything.
+        existing_skill_md = SKILL_LINK / "SKILL.md"
+        is_arboviz = False
+        if existing_skill_md.is_file():
+            try:
+                text = existing_skill_md.read_text(encoding="utf-8")
+                # Tiny inline frontmatter parse — avoid pulling in PyYAML for one field.
+                if text.startswith("---"):
+                    end = text.find("---", 3)
+                    if end != -1:
+                        for line in text[3:end].splitlines():
+                            line = line.strip()
+                            if line.startswith("name:"):
+                                if line.split(":", 1)[1].strip().strip("'\"") == "arboviz":
+                                    is_arboviz = True
+                                break
+            except OSError:
+                pass
+
+        if not is_arboviz:
+            print(
+                f"arboviz: {SKILL_LINK}/ exists as a directory with non-arboviz "
+                "content. Refusing to overwrite. Please remove it manually if "
+                "you want to install the bundled skill.",
+                file=sys.stderr,
+            )
+            return
+
+        import shutil
+        shutil.rmtree(SKILL_LINK)
+    elif SKILL_LINK.exists():
+        # Regular file at the destination — also unsafe to silently delete.
+        print(
+            f"arboviz: {SKILL_LINK} exists and is not a directory. "
+            "Refusing to overwrite. Remove it manually to install the skill.",
+            file=sys.stderr,
+        )
+        return
 
     SKILL_LINK.symlink_to(SKILLS_SRC, target_is_directory=True)
     print(f"arboviz: Claude Code skill installed → {SKILL_LINK}")
