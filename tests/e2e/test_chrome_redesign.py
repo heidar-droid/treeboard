@@ -114,3 +114,27 @@ def test_history_clock_hover_opens_popover(page: Page, arboviz_server):
     page.locator("#history-clock").hover()
     expect(page.locator("#history-popover")).to_be_visible(timeout=400)
     expect(page.locator("#history-popover")).to_contain_text("first task")
+
+
+def test_live_status_shows_on_first_event(page: Page, arboviz_server):
+    url, _ = arboviz_server
+    page.goto(url)
+    _wait_for_board(page)
+    ts = int(time.time())
+    post_event({"type": "snapshot", "ts": ts})
+    post_event({"type": "edit", "file": "src/a.py", "ts": ts + 1})
+    expect(page.locator("#live-status")).to_be_visible(timeout=400)
+    expect(page.locator("#live-status .verb")).to_contain_text("editing")
+    expect(page.locator("#live-status .path")).to_contain_text("a.py")
+
+
+def test_live_status_hides_after_task_end(page: Page, arboviz_server):
+    url, _ = arboviz_server
+    page.goto(url)
+    _wait_for_board(page)
+    ts = int(time.time())
+    post_event({"type": "snapshot", "ts": ts})
+    post_event({"type": "edit", "file": "src/a.py", "ts": ts + 1})
+    expect(page.locator("#live-status")).to_be_visible(timeout=400)
+    post_event({"type": "task-end", "label": "done", "ts": ts + 2})
+    expect(page.locator("#live-status")).to_be_hidden(timeout=1500)

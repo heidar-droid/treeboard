@@ -1293,3 +1293,46 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
   #history-popover { transition: none; }
   #history-popover .entry.live .dot { animation: none; }
 }
+
+/* ── Live status pill (v2.1 chrome) ───────────────────────────── */
+#live-status {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%) translateY(-4px);
+  z-index: 24;
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 6px 14px 6px 11px;
+  border-radius: 999px;
+  background: rgba(8,14,11,.92);
+  border: 1px solid var(--line-2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 10px; color: var(--ink); letter-spacing: .02em;
+  box-shadow: 0 10px 24px rgba(0,0,0,.5);
+  opacity: 0;
+  transition: opacity .2s ease, transform .24s cubic-bezier(.2,.7,.2,1.05);
+  pointer-events: none;
+}
+#live-status.open { opacity: 1; transform: translateX(-50%) translateY(0); }
+#live-status .pulse {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 8px var(--orange);
+  animation: live-status-pulse 1.4s ease-in-out infinite;
+}
+#live-status .verb {
+  font-family: 'Fraunces', serif; font-style: italic; font-weight: 500;
+  color: var(--orange);
+}
+#live-status .path { color: var(--ink-muted); }
+#live-status .age {
+  margin-left: 4px; color: var(--ink-muted);
+  border-left: 1px solid var(--line); padding-left: 9px;
+  font-size: 9.5px; letter-spacing: .08em;
+}
+@keyframes live-status-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .45; transform: scale(.75); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #live-status { transition: none; }
+  #live-status .pulse { animation: none; }
+}
