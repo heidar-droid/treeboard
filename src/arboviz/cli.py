@@ -5,6 +5,7 @@ import atexit
 import json
 import os
 import pathlib
+import signal
 import socket
 import sys
 import threading
@@ -121,6 +122,12 @@ def main(argv: list[str] | None = None) -> int:
 
     write_lock(pid=os.getpid(), port=port, path=str(args.path))
     atexit.register(clear_lock)
+
+    def _on_signal(signum, frame):
+        clear_lock()
+        sys.exit(0)
+    signal.signal(signal.SIGTERM, _on_signal)
+    signal.signal(signal.SIGINT, _on_signal)
 
     if args.no_browser:
         # Headless mode — server only, no window

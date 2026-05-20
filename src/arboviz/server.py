@@ -38,7 +38,7 @@ from arboviz.watcher import TreeWatcher
 from arboviz.git import git_status, git_diff
 from arboviz.search import content_search
 from arboviz.imports import parse_imports
-from arboviz.persist import load_json, save_json, _RW_LOCK
+from arboviz.persist import load_json, save_json, _RW_LOCK, append_task_to_session
 from arboviz.graph import build_graph, update_graph_for_file, remove_from_graph
 from arboviz.session import AgentSession
 
@@ -359,6 +359,14 @@ def build_app(
             remove_from_graph(_graph, full)
 
         _agent_session.handle(event.type, event.file, event.label)
+
+        # Persist completed task to ~/.arboviz/sessions/YYYY-MM-DD.json
+        if event.type == "task-end" and _agent_session.tasks:
+            try:
+                last_task = _agent_session.tasks[-1]
+                append_task_to_session(str(root_p), last_task)
+            except Exception:
+                pass  # persistence is best-effort, don't fail the request
 
         _EVENT_BUFFER.append(payload)
         if len(_EVENT_BUFFER) > _BUFFER_MAX:
