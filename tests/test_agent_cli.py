@@ -1,7 +1,7 @@
 import json
 import pathlib
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from arboviz.cli import run_agent_command, AGENT_COMMANDS
 
 
