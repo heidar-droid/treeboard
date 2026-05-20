@@ -123,7 +123,7 @@ def test_live_status_shows_on_first_event(page: Page, arboviz_server):
     ts = int(time.time())
     post_event({"type": "snapshot", "ts": ts})
     post_event({"type": "edit", "file": "src/a.py", "ts": ts + 1})
-    expect(page.locator("#live-status")).to_be_visible(timeout=400)
+    expect(page.locator("#live-status")).to_be_visible(timeout=250)
     expect(page.locator("#live-status .verb")).to_contain_text("editing")
     expect(page.locator("#live-status .path")).to_contain_text("a.py")
 

@@ -27,6 +27,7 @@ export function setupLiveStatus(viewport, agentState) {
   let hideTimer = null;
   let visible = false;
   let prevCanvasState = "idle";
+  let openRaf = 0;
 
   function relPath(absPath, rootPath) {
     if (!absPath) return "";
@@ -53,7 +54,11 @@ export function setupLiveStatus(viewport, agentState) {
     if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
     if (!visible) {
       pill.style.display = "inline-flex";
-      requestAnimationFrame(() => pill.classList.add("open"));
+      if (openRaf) cancelAnimationFrame(openRaf);
+      openRaf = requestAnimationFrame(() => {
+        openRaf = 0;
+        pill.classList.add("open");
+      });
       visible = true;
       taskStartMs = Date.now();
       startAgeTicker();
@@ -64,6 +69,7 @@ export function setupLiveStatus(viewport, agentState) {
   }
 
   function hide() {
+    if (openRaf) { cancelAnimationFrame(openRaf); openRaf = 0; }
     if (!visible) return;
     pill.classList.remove("open");
     if (hideTimer) clearTimeout(hideTimer);
@@ -81,7 +87,7 @@ export function setupLiveStatus(viewport, agentState) {
   const onState = (s) => {
     const cs = s.canvasState;
     // task-end (or back to idle) → schedule hide
-    if (prevCanvasState !== "frozen" && cs === "frozen") {
+    if (cs === "frozen" && visible) {
       hide();
     }
     // any active op → show with the most recent event
@@ -105,6 +111,7 @@ export function setupLiveStatus(viewport, agentState) {
     dispose() {
       unsubscribe();
       if (hideTimer) clearTimeout(hideTimer);
+      if (openRaf) cancelAnimationFrame(openRaf);
       stopAgeTicker();
       pill.remove();
     }

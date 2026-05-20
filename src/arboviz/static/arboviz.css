@@ -1333,6 +1333,7 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
   50%      { opacity: .45; transform: scale(.75); }
 }
 @media (prefers-reduced-motion: reduce) {
-  #live-status { transition: none; }
+  #live-status { transition: none; transform: translateX(-50%) translateY(0); }
+  #live-status.open { transform: translateX(-50%) translateY(0); }
   #live-status .pulse { animation: none; }
 }
