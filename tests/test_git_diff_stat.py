@@ -5,6 +5,13 @@ import pytest
 from arboviz.git_diff_stat import diff_stat, DiffStat
 
 
+@pytest.fixture(autouse=True)
+def _clear_cache():
+    from arboviz.git_diff_stat import _reset_cache_for_tests
+    _reset_cache_for_tests()
+    yield
+
+
 def _init_repo(root: Path) -> None:
     subprocess.run(["git", "init", "-q"], cwd=root, check=True)
     subprocess.run(["git", "-C", str(root), "config", "user.email", "t@t"], check=True)
@@ -45,8 +52,6 @@ def test_diff_stat_binary_returns_none(tmp_path):
 
 
 def test_diff_stat_caches_by_path_and_mtime(tmp_path, monkeypatch):
-    from arboviz.git_diff_stat import _reset_cache_for_tests
-    _reset_cache_for_tests()
     _init_repo(tmp_path)
     f = tmp_path / "a.py"
     f.write_text("one\n")

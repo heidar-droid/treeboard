@@ -15,7 +15,6 @@ import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -24,7 +23,7 @@ class DiffStat:
     removed: int
 
 
-_CACHE: dict[tuple[str, int], Optional[DiffStat]] = {}
+_CACHE: dict[tuple[str, int], DiffStat | None] = {}
 _CACHE_MAX = 512
 
 
@@ -35,7 +34,7 @@ def _mtime_ns(p: Path) -> int:
         return 0
 
 
-def diff_stat(root: Path | str, rel_path: str) -> Optional[DiffStat]:
+def diff_stat(root: Path | str, rel_path: str) -> DiffStat | None:
     root_p = Path(root)
     abs_p = (root_p / rel_path).resolve()
     if not abs_p.is_file():
@@ -46,11 +45,11 @@ def diff_stat(root: Path | str, rel_path: str) -> Optional[DiffStat]:
 
     try:
         proc = subprocess.run(
-            ["git", "-C", str(root_p), "diff", "--numstat", "--", rel_path],
-            capture_output=True, text=True, timeout=2, check=False,
+            ["git", "diff", "--numstat", "--", rel_path],
+            cwd=root_p, capture_output=True, text=True, timeout=2, check=False,
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
-        result: Optional[DiffStat] = None
+        result: DiffStat | None = None
     else:
         result = _parse(proc.stdout) if proc.returncode == 0 else None
 
@@ -63,7 +62,7 @@ def diff_stat(root: Path | str, rel_path: str) -> Optional[DiffStat]:
     return result
 
 
-def _parse(stdout: str) -> Optional[DiffStat]:
+def _parse(stdout: str) -> DiffStat | None:
     line = stdout.strip().split("\n", 1)[0].strip()
     if not line:
         return None
