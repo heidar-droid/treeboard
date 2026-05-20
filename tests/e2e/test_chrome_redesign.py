@@ -235,3 +235,76 @@ def test_diff_badge_appears_under_edited_pill(page: Page, arboviz_server_with_tr
     badge = page.locator(".diff-badge[data-path*='a.py']")
     expect(badge).to_be_visible(timeout=3000)
     expect(badge.locator(".plus")).to_be_visible()
+
+
+def test_no_chrome_overlap_at_800px(page, arboviz_server):
+    """Item #1: at 800px viewport the history-clock pill stays inside the canvas."""
+    import json, http.client, time
+    url, project = arboviz_server
+    port = int(url.rsplit(":", 1)[1])
+
+    def post_evt(payload):
+        body = json.dumps(payload).encode()
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
+        conn.request("POST", "/api/event", body=body, headers={"Content-Type": "application/json"})
+        r = conn.getresponse(); r.read(); conn.close()
+
+    page.set_viewport_size({"width": 800, "height": 600})
+    page.goto(url)
+    page.wait_for_selector("g.node", timeout=8000)
+    ts = int(time.time())
+    post_evt({"type": "snapshot", "ts": ts})
+    post_evt({"type": "edit", "file": "src/a.py", "ts": ts + 1})
+    post_evt({"type": "task-end", "label": "task", "ts": ts + 2})
+
+    expect(page.locator("#history-clock")).to_be_visible(timeout=2000)
+    box = page.locator("#history-clock").bounding_box()
+    assert box is not None
+    assert box["x"] >= 0, f"clock pill left edge off-screen: x={box['x']}"
+    assert box["x"] + box["width"] <= 800, (
+        f"clock pill right edge off-screen: x+w={box['x'] + box['width']}"
+    )
+
+
+def test_agent_edit_label_legible_contrast(page, arboviz_server):
+    """Item #7: orange-edit pill labels must be rendered in stroke colour, not inherited black."""
+    import json, http.client, time
+    url, project = arboviz_server
+    port = int(url.rsplit(":", 1)[1])
+
+    def post_evt(payload):
+        body = json.dumps(payload).encode()
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
+        conn.request("POST", "/api/event", body=body, headers={"Content-Type": "application/json"})
+        r = conn.getresponse(); r.read(); conn.close()
+
+    page.goto(url)
+    page.wait_for_selector("g.node", timeout=8000)
+    ts = int(time.time())
+    post_evt({"type": "snapshot", "ts": ts})
+    post_evt({"type": "edit", "file": "auth.py", "ts": ts + 1})
+
+    # Wait for the agent-edit class to apply AND the .lbl fill transition (0.3s)
+    # to complete. agent-pills.js applies the class async after the edit event arrives
+    # via SSE, and the fill animates from --file-lbl to #f0883e.
+    page.wait_for_selector("g.node[data-path*='auth.py'].agent-edit", timeout=2000)
+    page.wait_for_timeout(500)  # allow .lbl fill transition (.3s) to settle
+    lbl = page.locator("g.node[data-path*='auth.py'].agent-edit .lbl").first
+    fill = lbl.evaluate("el => getComputedStyle(el).fill")
+    # Accept both rgb() and hex forms — Linux + macOS Playwright differ
+    acceptable = (
+        "rgb(240, 136, 62)",   # #f0883e
+        "#f0883e",
+        "rgb(240,136,62)",
+    )
+    assert fill in acceptable, f"label fill was {fill!r}, expected one of {acceptable}"
+
+
+def test_legacy_session_file_without_diff_field_loads():
+    """Item #8: v2.0 session JSON on disk must still parse under v2.1 model."""
+    from arboviz.server import AgentEvent
+    legacy = {"type": "edit", "file": "x.py", "ts": 1, "label": None}  # no `diff`
+    evt = AgentEvent.model_validate(legacy)
+    assert evt.diff is None
+    assert evt.file == "x.py"
+    assert evt.type == "edit"
