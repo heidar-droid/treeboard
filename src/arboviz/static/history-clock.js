@@ -30,14 +30,17 @@ export function setupHistoryClock(viewport, agentState) {
   const pop = document.createElement("div");
   pop.id = "history-popover";
   pop.setAttribute("role", "dialog");
+  pop.setAttribute("aria-label", "Task history");
   pop.style.display = "none";
   viewport.appendChild(pop);
 
   let firstShownPulseUsed = false;
   let closeTimer = null;
+  let fadeTimer = null;
 
   function openPopover() {
     if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
+    if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
     renderPopover(agentState.timeline, agentState.activeFootprint);
     pop.style.display = "block";
     requestAnimationFrame(() => pop.classList.add("open"));
@@ -46,13 +49,19 @@ export function setupHistoryClock(viewport, agentState) {
     if (closeTimer) clearTimeout(closeTimer);
     closeTimer = setTimeout(() => {
       pop.classList.remove("open");
-      setTimeout(() => { if (!pop.classList.contains("open")) pop.style.display = "none"; }, 280);
+      if (fadeTimer) clearTimeout(fadeTimer);
+      fadeTimer = setTimeout(() => {
+        if (!pop.classList.contains("open")) pop.style.display = "none";
+      }, 280);
     }, 240);
   }
   function closeNow() {
     if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
     pop.classList.remove("open");
-    setTimeout(() => { if (!pop.classList.contains("open")) pop.style.display = "none"; }, 280);
+    if (fadeTimer) clearTimeout(fadeTimer);
+    fadeTimer = setTimeout(() => {
+      if (!pop.classList.contains("open")) pop.style.display = "none";
+    }, 280);
   }
 
   pill.addEventListener("mouseenter", openPopover);
@@ -60,13 +69,16 @@ export function setupHistoryClock(viewport, agentState) {
   pop.addEventListener("mouseenter", () => { if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; } });
   pop.addEventListener("mouseleave", scheduleClose);
 
-  window.addEventListener("keydown", (e) => {
+  const onKeyDown = (e) => {
     if (e.key === "Escape" && pop.classList.contains("open")) closeNow();
-    const t = document.activeElement;
-    if (e.key === "t" && (!t || !["INPUT", "TEXTAREA"].includes(t.tagName))) {
+    const focused = document.activeElement;
+    const inForm = focused && ["INPUT", "TEXTAREA", "SELECT"].includes(focused.tagName);
+    const inPopover = focused && focused.closest && focused.closest("#history-popover");
+    if (e.key === "t" && !inForm && !inPopover) {
       if (pop.classList.contains("open")) closeNow(); else openPopover();
     }
-  });
+  };
+  window.addEventListener("keydown", onKeyDown);
 
   function renderPopover(timeline, activeFootprint) {
     const isLive = activeFootprint === null;
@@ -120,8 +132,17 @@ export function setupHistoryClock(viewport, agentState) {
     }
   }
 
-  agentState.subscribe(update);
+  const unsubscribe = agentState.subscribe(update);
   update();
 
-  return { dispose: () => { pill.remove(); pop.remove(); } };
+  return {
+    dispose() {
+      unsubscribe();
+      if (closeTimer) clearTimeout(closeTimer);
+      if (fadeTimer) clearTimeout(fadeTimer);
+      window.removeEventListener("keydown", onKeyDown);
+      pill.remove();
+      pop.remove();
+    }
+  };
 }

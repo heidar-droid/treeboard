@@ -27,6 +27,9 @@
   --file-lbl: #6e7d6f;
   --tokyo-bg: #1a1b26;
   --tokyo-ink: #c0caf5;
+
+  /* Accent: orange (history clock pill, live indicator) */
+  --orange: #f0883e;
 }
 
 [data-theme="light"] {
@@ -51,6 +54,9 @@
   --sage-glow: rgba(63,107,52,.45);
   --folder-lbl: #2e3a30;
   --file-lbl: #6c7768;
+
+  /* Accent: orange (slightly darker on cream paper for contrast) */
+  --orange: #d97326;
 }
 
 html, body { background: var(--bg); color: var(--ink); }
