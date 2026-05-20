@@ -3,6 +3,45 @@
 All notable changes to arboviz are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## v2.1.0 — 2026-05-20
+
+Cockpit chrome redesign. v2.0's timeline strip is gone; the agent cockpit
+now communicates through three quieter surfaces.
+
+### Added
+- **History clock pill** (`#history-clock`) — bottom-left, materialises after
+  the first task completes, with a once-only discoverability pulse. Hover or
+  press `T` to open the history popover (newest-first list of past tasks with
+  per-task footprint counts).
+- **Live status pill** (`#live-status`) — top-center, glassmorphic. Shows the
+  verb (in Fraunces italic), the relative path, and the wallclock age of the
+  current task. Fades 800ms after `task-end`.
+- **Inline diff badges** — `+N/−N` counters under every touched pill, sourced
+  from a cached `git diff --numstat` helper. Renders only when git can answer;
+  silently absent for untracked / binary / non-repo paths.
+- New `arboviz.git_diff_stat` module with `(path, mtime)` cache.
+- Optional `diff: EventDiffStat | None` field on `AgentEvent`.
+- New `--orange` design token (`#f0883e` dark, `#d97326` light).
+
+### Fixed
+- **Label contrast on agent-state pills.** `arboviz.css:1152` used
+  `fill: inherit` which resolved to SVG-default black, making labels invisible
+  the moment a pill went orange or green. Now explicit fills per state.
+
+### Removed
+- `src/arboviz/static/timeline.js` — replaced by the history clock + popover.
+- The 28px `agent-summary-bar` overlay — folded into the popover header.
+
+### Compatibility
+- v2.0 lock files (`~/.arboviz/locks/<sha1>.lock`) parse unchanged.
+- v2.0 session files (`~/.arboviz/sessions/*.json`) parse unchanged — the
+  new `diff` field is optional and absent in legacy payloads.
+- The Claude Code skill (`SKILL.md`) CLI contract is unchanged in v2.1.
+
+### Deferred to v2.2
+- Token / cost overlay (skill change is brittle; revisit after a week of v2.1).
+- Hotspot heat for revisited files.
+
 ## [2.0.0] — 2026-05-20
 
 The agent cockpit release. arboviz becomes the live visual layer for Claude Code sessions — spatial canvas showing every file the agent reads, edits, creates, or deletes, in real time.

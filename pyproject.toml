@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "arboviz"
-version = "2.0.0"
+version = "2.1.0"
 description = "Visual cockpit for Claude Code — spatial canvas showing live agent file activity."
 readme = "README.md"
 requires-python = ">=3.11"
