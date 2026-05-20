@@ -407,4 +407,121 @@ User clicks orange pill (src/auth.py) in editing or frozen state
 
 ---
 
+## Implementation Deltas
+
+The following details were locked in during the 17-task implementation pass. They refine — not replace — the architecture above. Captured here so the spec stays the single source of truth.
+
+---
+
+### Native window — PyWebView main-thread architecture
+
+**Original spec:** PyWebView wraps the FastAPI server in a native window.
+
+**Implementation refinement:** macOS Cocoa requires `webview.start()` to run on the **main thread** (NSApplication runloop). uvicorn also blocks the main thread. These are incompatible unless one moves.
+
+Resolution: use PyWebView's `webview.start(func=...)` parameter. PyWebView keeps the GUI on the main thread and spawns `func` (which runs uvicorn) on a managed worker thread.
+
+**Resulting flow:**
+- `cli.main()` → `run_with_window(app, port, url)`
+- `run_with_window` → `webview.create_window(...)` then `webview.start(func=_run_server, debug=False)`
+- `_run_server` runs uvicorn inside PyWebView's worker thread
+- Main thread owns the Cocoa loop; the canvas renders correctly on macOS
+
+**Browser fallback:** If PyWebView isn't installed, `run_with_window` opens the URL via `webbrowser.open` and runs uvicorn directly on the main thread — preserves headless and browser-tab modes unchanged.
+
+---
+
+### Session persistence — explicit wire on `task-end`
+
+**Original spec:** Completed tasks written to `~/.arboviz/sessions/YYYY-MM-DD.json` with 24h TTL.
+
+**Implementation refinement:** The `/api/event` handler must explicitly call `persist.append_task_to_session(str(root_p), _agent_session.tasks[-1])` inside its `task-end` branch. The handler wraps this in `try/except` — persistence is best-effort and never fails the request.
+
+The call lives in `server.py` immediately after `_agent_session.handle(...)` returns and before the WebSocket broadcast. Without this wire, the in-memory timeline still works within a single process, but never survives a restart.
+
+---
+
+### Singleton lock — signal-handled cleanup
+
+**Original spec:** Lock file written on server start, cleaned via `atexit`.
+
+**Implementation refinement:** `atexit` only fires on clean Python shutdown — not on SIGTERM or SIGINT. The lock file would leak on `pkill`, Ctrl-C, or any signal-driven exit.
+
+Resolution: `cli.main()` registers SIGTERM and SIGINT handlers that call `clear_lock()` and `sys.exit(0)`. The atexit registration remains as a backstop. The next `arboviz .` invocation does a stale-PID check via `os.kill(pid, 0)` regardless — but a clean lock file makes debugging less ambiguous.
+
+**Known minor quirk:** the lock file stores the literal `path` argument (e.g. `.` if invoked as `arboviz .`) while server-side persistence resolves to absolute. Two invocations from different relative paths into the same directory will not detect each other as duplicates. Acceptable for v2.0; flag for v3.0 polish.
+
+---
+
+### Frontend re-application on `redraw()`
+
+**Original spec:** `applyAgentPillStates` runs on every agent state change.
+
+**Implementation refinement:** `renderBoard` in `render.js` wipes `#nodes` and `#edges` on every redraw — destroying all CSS classes including agent state. Folder expand/collapse silently erases the agent visual layer until the next agent event fires.
+
+Resolution: `redraw()` in `arboviz.js` calls `applyAgentPillStates(board, agentState)` after `wireInteractions(nodes)`. Agent state survives any UI re-render.
+
+---
+
+### Native window — fire-once transition guard
+
+**Original spec:** `windowBridge.bringToFront()` fires when canvas enters `scanning`.
+
+**Implementation refinement:** Scanning persists across many `read` events. Without a guard, `bringToFront` fires on every `read` notification — the OS spam-raises the window.
+
+Resolution: a `_prevCanvasState` outer-scope variable tracks the prior state. `bringToFront` fires only on the transition `notScanning → scanning` (the snapshot moment), never during the read flurry that follows.
+
+---
+
+### Graph path normalization
+
+**Original spec:** `graph.py` builds adjacency from `parse_imports(root)`.
+
+**Implementation refinement:** `pathlib.Path(root).resolve()` expands macOS symlinks (`/var/folders/...` → `/private/var/folders/...`). `scan.py` does not resolve, so the SVG canvas pills carry the unresolved form. The dep-ripple click handler reads `node.dataset.path` (unresolved) and looks it up in `_graph` (resolved) — lookup misses, ripple never draws.
+
+Resolution: `build_graph` and `update_graph_for_file` do **not** resolve the root. They use `pathlib.Path(root)` directly so keys match the frontend's path format.
+
+---
+
+### Ripple SVG render order
+
+**Original spec:** Dependency ripple draws dashed lines as an SVG layer.
+
+**Implementation refinement:** Appending the ripple group last in SVG document order paints lines **above** pill labels. Labels become obscured at line intersections.
+
+Resolution: `drawRipple` inserts the ripple group **before** `#nodes` via `svg.insertBefore(rippleGroup, nodesGroup)`. Lines render under labels; pill text stays readable.
+
+---
+
+### WebSocket reconnect — ping timer hygiene
+
+**Original spec:** WebSocket reconnect with exponential backoff (1s → 10s).
+
+**Implementation refinement:** The 15s keepalive ping is registered inside `connect()`. Every reconnect creates a fresh `setInterval` without clearing the previous one — timers accumulate as a slow leak.
+
+Resolution: `pingTimer` is declared in `setupLiveUpdates`'s outer scope. The `close` handler calls `clearInterval(pingTimer)` before scheduling reconnect; `connect()` also clears any stale timer before starting a new one. One ping timer at any time, always tied to the live socket.
+
+---
+
+### Test layout — `tests/e2e/` not `tests/playwright/`
+
+**Original spec:** Playwright tests live at `tests/playwright/`.
+
+**Implementation refinement:** A `tests/playwright/__init__.py` collided with the installed `playwright` Python package — pytest collection broke on import resolution.
+
+Resolution: the directory is `tests/e2e/`. Same test content, different name. The `pyproject.toml` ignore patterns and CI invocations reference `tests/e2e/` accordingly.
+
+---
+
+### Final test surface
+
+| Suite | Count | Notes |
+|---|---|---|
+| Backend (`tests/`, excluding `tests/e2e/`) | 99 passing | Full lock / graph / session / CLI / server / Playwright-free coverage |
+| End-to-end (`tests/e2e/`) | 5 passing, 1 xfail | Canvas state assertions via real browser; xfail is a Playwright click-dispatch quirk (graph lookup verified working manually) |
+| End-to-end smoke (manual, Task 17) | All 9 checkpoints | Skill symlink, pip install, server start, full agent loop, persistence, singleton, graph endpoint, lock cleanup |
+
+---
+
 *Spec written by Friday · arboviz v2.0 · 2026-05-20*
+*Implementation deltas appended after the 17-task subagent-driven build, 2026-05-20.*
