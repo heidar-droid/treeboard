@@ -16,7 +16,13 @@ import webbrowser
 
 import uvicorn
 
-from arboviz.lock import clear_lock, existing_server, read_lock, write_lock
+from arboviz.lock import (
+    clear_lock,
+    existing_server,
+    find_lock_for_cwd,
+    read_lock,
+    write_lock,
+)
 from arboviz.server import build_app
 from arboviz.window import run_with_window
 
@@ -34,8 +40,26 @@ _AGENT_HELP = (
 
 def _project_root_for_cwd() -> str:
     """The agent commands are invoked from inside the project; cwd locates
-    which arboviz server (if any) owns this project's lock."""
-    return str(pathlib.Path.cwd().resolve())
+    which arboviz server (if any) owns this project's lock. We walk upward
+    so a CLI call from `project/src/sub/` still hits the lock written at
+    `project/`."""
+    cwd = str(pathlib.Path.cwd().resolve())
+    match = find_lock_for_cwd(cwd)
+    return match if match is not None else cwd
+
+
+def _log_failure(payload: dict, reason: str) -> None:
+    """Best-effort append-only log so silent CLI failures are debuggable
+    via `~/.arboviz/arboviz.log` rather than completely opaque."""
+    try:
+        logdir = pathlib.Path.home() / ".arboviz"
+        logdir.mkdir(parents=True, exist_ok=True)
+        with (logdir / "arboviz.log").open("a") as f:
+            f.write(
+                f"{int(time.time())} {reason} payload={json.dumps(payload)}\n"
+            )
+    except Exception:
+        pass
 
 
 def _post_event(payload: dict) -> None:
@@ -53,19 +77,30 @@ def _post_event(payload: dict) -> None:
     try:
         with urllib.request.urlopen(req, timeout=1):
             pass
-    except (urllib.error.URLError, OSError, ConnectionRefusedError):
-        pass
+    except urllib.error.HTTPError as e:
+        try:
+            body = e.read().decode("utf-8", errors="replace")[:200]
+        except Exception:
+            body = ""
+        _log_failure(payload, f"HTTP {e.code}: {body}")
+    except (urllib.error.URLError, OSError, ConnectionRefusedError) as e:
+        _log_failure(payload, f"connection: {e!r}")
 
 
 def run_agent_command(cmd: str, *, file: str | None, label: str | None) -> None:
     """Post a single agent event. Exits silently on any failure."""
     try:
+        # Millisecond precision: Claude Code can fire many CLI calls in the
+        # same wall-clock second during a single task; second precision causes
+        # the frontend's `ts <= _lastSeenTs` dedup to silently drop most
+        # events in production. Milliseconds give us 1000x headroom.
+        ts = int(time.time() * 1000)
         if cmd == "snapshot":
-            _post_event({"type": "snapshot", "ts": int(time.time())})
+            _post_event({"type": "snapshot", "ts": ts})
         elif cmd == "task-end":
-            _post_event({"type": "task-end", "label": label or "", "ts": int(time.time())})
+            _post_event({"type": "task-end", "label": label or "", "ts": ts})
         elif cmd in {"read", "edit", "create", "delete"}:
-            _post_event({"type": cmd, "file": file or "", "ts": int(time.time())})
+            _post_event({"type": cmd, "file": file or "", "ts": ts})
     except Exception:
         pass
 
@@ -115,6 +150,13 @@ def main(argv: list[str] | None = None) -> int:
         else:
             run_agent_command(cmd, file=arg, label=None)
         return 0
+
+    # Repair stale skill symlink before doing any real work — best-effort.
+    try:
+        from arboviz.install import refresh_skill_if_stale
+        refresh_skill_if_stale()
+    except Exception:
+        pass
 
     args = parse_args(argv)
     if not args.path.is_dir():
