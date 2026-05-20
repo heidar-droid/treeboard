@@ -51,13 +51,20 @@ def _project_tag(project: str) -> str:
     return hashlib.sha1(project.encode()).hexdigest()[:8]
 
 
-def session_file_path(project: str | None = None) -> pathlib.Path:
-    """Per-project session file. The `project` arg is required for new code;
-    the optional default is kept only so legacy callers don't break, but they
-    will silently collide on a shared file."""
-    if project is None:
-        return _SESSIONS_DIR / f"{date.today()}.json"
-    return _SESSIONS_DIR / f"{date.today()}-{_project_tag(project)}.json"
+def session_file_path(project: str) -> pathlib.Path:
+    """Per-project session file. `project` MUST be the absolute project root.
+
+    The previous `project=None` default produced a path that silently
+    collided across all projects on the same machine. Since arboviz is
+    PyPI-distributed, downstream callers can hit that footgun by accident
+    — better to fail loudly. Pass the absolute project root path.
+    """
+    if not project:
+        raise ValueError(
+            "project is required and must be the project root absolute path"
+        )
+    canonical = str(pathlib.Path(project).expanduser().resolve())
+    return _SESSIONS_DIR / f"{date.today()}-{_project_tag(canonical)}.json"
 
 
 def load_session(project: str) -> dict:

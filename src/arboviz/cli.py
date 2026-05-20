@@ -50,14 +50,19 @@ def _project_root_for_cwd() -> str:
 
 def _log_failure(payload: dict, reason: str) -> None:
     """Best-effort append-only log so silent CLI failures are debuggable
-    via `~/.arboviz/arboviz.log` rather than completely opaque."""
+    via `~/.arboviz/arboviz.log` rather than completely opaque.
+
+    Uses ISO timestamp with millisecond precision to match the ms-level
+    `ts` field on event payloads — correlating a log entry to the event
+    that produced it should not require unit math.
+    """
     try:
+        from datetime import datetime
         logdir = pathlib.Path.home() / ".arboviz"
         logdir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now().isoformat(timespec="milliseconds")
         with (logdir / "arboviz.log").open("a") as f:
-            f.write(
-                f"{int(time.time())} {reason} payload={json.dumps(payload)}\n"
-            )
+            f.write(f"{ts} {reason} payload={json.dumps(payload)}\n")
     except Exception:
         pass
 
