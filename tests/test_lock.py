@@ -139,6 +139,83 @@ def test_find_lock_for_cwd_picks_longest_ancestor(tmp_path):
     assert find_lock_for_cwd(str(deep)) == str(inner.resolve())
 
 
+def test_find_lock_for_cwd_resolves_noncanonical_recorded_path(tmp_path):
+    """If the on-disk lock JSON has a non-canonical `path` (manual edit,
+    buggy writer), find_lock_for_cwd must still match it after resolve."""
+    from arboviz.lock import _lock_path
+    import json as _json
+    proj = tmp_path / "proj_a"
+    proj.mkdir()
+    # Write the lock via the normal API to get the right digest.
+    write_lock(pid=os.getpid(), port=9001, path=str(proj))
+    # Now overwrite the JSON with a non-canonical version of the same path
+    # (trailing slash + redundant `.` segment).
+    lock_file = _lock_path(str(proj))
+    noncanon = f"{proj}/./"
+    lock_file.write_text(_json.dumps(
+        {"pid": os.getpid(), "port": 9001, "path": noncanon}
+    ))
+    # find_lock_for_cwd should still match.
+    sub = proj / "src"
+    sub.mkdir()
+    found = find_lock_for_cwd(str(sub))
+    assert found == str(proj.resolve())
+
+
+def test_find_lock_for_cwd_skips_stale_recorded_path(tmp_path):
+    """If the on-disk lock points to a now-deleted directory, skip it."""
+    from arboviz.lock import _lock_path
+    import json as _json
+    ghost = tmp_path / "ghost"
+    ghost.mkdir()
+    write_lock(pid=os.getpid(), port=9001, path=str(ghost))
+    # Verify the lock file exists with the ghost path, then delete the
+    # directory but leave the lock file behind.
+    lock_file = _lock_path(str(ghost))
+    assert lock_file.exists()
+    ghost.rmdir()
+    # A different cwd that isn't related to the ghost path — must not crash.
+    other = tmp_path / "other"
+    other.mkdir()
+    # Should return None: the stale lock can't resolve, and cwd isn't under it.
+    # Even if resolve() succeeds on a non-existent path (Python ≥3.6 allows
+    # strict=False), the path comparison still won't match `other`.
+    assert find_lock_for_cwd(str(other)) is None
+
+
+def test_server_responds_waits_for_slow_startup(tmp_path):
+    """A server that takes 600ms to bind+respond on first request must be
+    detected as alive — not as dead-after-200ms-timeout."""
+    from arboviz.lock import _server_responds
+    import http.server
+    import socketserver
+    import threading
+    import time as _t
+
+    first = {"served": False}
+
+    class SlowHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            if not first["served"]:
+                first["served"] = True
+                _t.sleep(0.6)  # simulate slow uvicorn warmup
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"ok")
+
+        def log_message(self, *_a, **_k):
+            pass
+
+    with socketserver.TCPServer(("127.0.0.1", 0), SlowHandler) as srv:
+        port = srv.server_address[1]
+        t = threading.Thread(target=srv.serve_forever, daemon=True)
+        t.start()
+        try:
+            assert _server_responds(port) is True
+        finally:
+            srv.shutdown()
+
+
 def test_lock_per_project_no_collision(tmp_path):
     """Two projects must have independent lock files."""
     a = str(tmp_path / "proj_a")

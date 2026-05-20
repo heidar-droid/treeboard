@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import pathlib
+import time
 
 # Lock files are keyed by a sha1 of the canonical project path so that
 # multiple `arboviz` invocations across different projects do not stomp
@@ -51,16 +52,30 @@ def clear_lock(path: str) -> None:
     _lock_path(path).unlink(missing_ok=True)
 
 
-def _server_responds(port: int, timeout: float = 0.2) -> bool:
-    """Quick liveness probe of a running arboviz server."""
-    try:
-        import urllib.request
-        with urllib.request.urlopen(
-            f"http://127.0.0.1:{port}/health", timeout=timeout
-        ) as r:
-            return r.status == 200
-    except Exception:
-        return False
+def _server_responds(port: int, timeout: float = 1.5) -> bool:
+    """Liveness probe of a running arboviz server.
+
+    Retries up to 3 times with a 200ms pause between attempts. A 0.2s
+    single-shot timeout was too aggressive — uvicorn typically takes
+    200-400ms to bind and respond to /health, so a previous arboviz
+    invocation still booting would be misclassified as dead, the lock
+    cleared, and the new invocation would then crash on port-bind.
+    Worst-case latency: ~5s (3 × 1.5s + retry pauses). Acceptable
+    because this check runs once per `arboviz .` invocation.
+    """
+    import urllib.request
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(
+                f"http://127.0.0.1:{port}/health", timeout=timeout
+            ) as r:
+                if r.status == 200:
+                    return True
+        except Exception:
+            pass
+        if attempt < 2:
+            time.sleep(0.2)
+    return False
 
 
 def existing_server(path: str) -> int | None:
@@ -111,13 +126,20 @@ def find_lock_for_cwd(cwd: str) -> str | None:
         recorded = data.get("path")
         if not isinstance(recorded, str):
             continue
+        # Resolve the recorded path to canonical form before comparison.
+        # The on-disk `path` field SHOULD already be normalized by
+        # write_lock, but defensive resolve protects against manual edits,
+        # buggy external writers, or future code paths that bypass
+        # _normalize. Skip the lock if the recorded path no longer exists
+        # on disk — it's stale.
         try:
-            recorded_p = pathlib.Path(recorded)
-        except (TypeError, ValueError):
+            recorded_p = pathlib.Path(recorded).expanduser().resolve()
+        except (OSError, RuntimeError, TypeError, ValueError):
             continue
         # cwd must be the path itself OR a descendant of it
         if cwd_p == recorded_p or recorded_p in cwd_p.parents:
-            if len(recorded) > best_len:
-                best = recorded
-                best_len = len(recorded)
+            recorded_str = str(recorded_p)
+            if len(recorded_str) > best_len:
+                best = recorded_str
+                best_len = len(recorded_str)
     return best
