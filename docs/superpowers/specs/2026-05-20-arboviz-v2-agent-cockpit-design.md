@@ -525,3 +525,141 @@ Resolution: the directory is `tests/e2e/`. Same test content, different name. Th
 
 *Spec written by Friday · arboviz v2.0 · 2026-05-20*
 *Implementation deltas appended after the 17-task subagent-driven build, 2026-05-20.*
+
+---
+
+## v2.1 Addendum — Cockpit chrome redesign (2026-05-20)
+
+After live-testing v2.0 against a real Claude Code session, four chrome issues surfaced:
+
+1. **Browser-tab overlap.** The 32 px timeline strip was anchored at `top: 0` of the viewport, sitting *behind* the browser's tab chrome. The leftmost entries were always clipped.
+2. **Orange-pill text-contrast bug.** `arboviz.css:1152–1153` applies `fill: inherit` to `.lbl` on `.node.agent-edit` / `.agent-create`. SVG text inherits parent `fill` which defaults to black on the `<g>`, so labels disappeared the moment a pill went orange or green.
+3. **Aesthetic mismatch.** The timeline pills used chunky bordered chips with mixed solid fills (`#f0883e` / `#3fb950` / `#f85149`). The rest of the canvas is editorial-quiet sage on near-black; the timeline shouted. It was also never appended to this spec — a documentation lapse.
+4. **Signal floor too low.** v2.0 only signals *which* files Claude touched. Doesn't answer *how much*, *what's happening right now*, or *is it stuck*.
+
+Decisions below were brainstormed via the visual companion against in-aesthetic mockups; Sir picked.
+
+### Decision 1 — Timeline placement: hover-reveal clock glyph
+
+**Chosen:** Variant C. No permanent timeline strip in the chrome.
+
+A small pill sits at the bottom-left of the canvas (`left: 14px; bottom: 46px`, above the existing toolbar). Visual: a 26 px-tall capsule with a clock outline, the word "history", and a sage→orange-tinted badge showing the task count.
+
+| State | Behavior |
+|---|---|
+| Idle (no tasks yet) | Pill hidden. Canvas pure. |
+| First task completes | Pill fades in with a single 1.6 s pulse-on-orange so first-time users discover it. Pulse never repeats. |
+| Hover OR `T` keypress | Glassmorphic popover (sage border, apple-radius, `backdrop-filter: blur(20px) saturate(1.2)`) expands upward-left from the pill anchor. Lists task entries: small dot + label + relative duration. Most-recent at bottom. Live task gets orange dot + pulse. |
+| Mouseout (with 240 ms delay) or `Esc` | Popover collapses with scale + opacity transition (240–280 ms cubic-bezier as elsewhere). |
+| Click an entry | Same behavior as v2.0 timeline-strip click: `agentState.viewPastTask(i)` (or `viewLive()` for the latest entry when already past). |
+
+**Why this beats the v2.0 strip:**
+- Canvas stays pure — matches arboviz's "quiet board" aesthetic.
+- Doesn't fight the browser tab chrome at all.
+- Hotkey-driven (`T`) gives power users an instant lookup.
+
+**Trade-off Sir accepted:** discoverability. The clock pill must be present and labeled (`history`, not just an icon), and the once-on-first-task pulse exists specifically to draw the eye the first time it materializes. We re-evaluate after a week of real use.
+
+### Decision 2 — Extra signals on touched files
+
+**Chosen:** three additions. The remaining two (hotspot heat, per-task duration) are deferred.
+
+#### 2a. Diff badge `+12 / −3`
+
+Inline counter pinned below each touched pill (`agent-edit` and `agent-create` only — `read` doesn't change anything; `delete` is its own colour). Renders as a tiny 9 px Geist-Mono pill with green plus and red minus.
+
+Source: a single `git diff --numstat <relative-path>` invocation per edit event, executed lazily on the server side when the buffer fans out. Cache by `(path, mtime)` so identical pills don't shell out twice. If `git` returns non-zero (not a repo, untracked, etc.), badge is omitted — never an error state.
+
+Server contract delta: the `AgentEvent` model gains an optional `diff: {added: int, removed: int} | None` field, populated server-side after canonicalization for `edit` and `create` events. WebSocket payload picks it up unchanged.
+
+Pill anchoring: badge is absolutely positioned 4 px below the pill's bottom edge, centered on the pill's `x` midpoint. Rerenders on every pill rerender (cheap; ~5 px of DOM per touched file).
+
+#### 2b. Live status line
+
+One pill, top-center of the canvas (`top: 14px; left: 50%; transform: translateX(-50%)`). Visual: glass capsule (same blur/saturate language as the popover), pulsing orange dot, Fraunces-italic verb (`reading` / `editing` / `creating` / `deleting`), Geist-Mono relative path, and a duration tail (`18s · refactor auth`).
+
+Appears within 80 ms of the first non-`snapshot` agent event after a `task-end` (or session start). Fades out 800 ms after `task-end`. The age tail counts wallclock seconds since the first event of the current task. **Task label:** we don't know it until `task-end` fires, so the status pill never shows a label — just `verb · path · age`. The label only appears on the popover history entries (where it's already known). This avoids requiring a `task-begin` skill change.
+
+Sourced entirely from existing AgentState — no new server payload required. Pure frontend reactive logic in a new module `live-status.js`.
+
+#### 2c. Token / cost estimate — **deferred to v2.2**
+
+Sir picked this in brainstorming, then accepted Friday's recommendation to defer. Reasons documented for the v2.2 addendum:
+
+- The skill change is brittle — Claude doesn't natively expose its tool-call token counters to the bash tool, so any implementation relies on Claude self-reporting via CLI flags. That's an unreliable contract.
+- On a single-user personal tool, cost-per-task isn't a load-bearing decision input.
+- It would add a second pill to the bottom-left stack, eroding the canvas-pure win the hover-reveal placement just bought.
+
+When picked back up in v2.2: bottom-left stack (token pill above the history clock), per-CLI `--tokens-in N --tokens-out M` flags, `arboviz/pricing.py` per-model price map, displayed as `14.2k tok · $0.21`.
+
+### Decision 3 — Orange/green pill text fix (the actual bug)
+
+Replace `arboviz.css:1152–1153`:
+
+```css
+/* OLD — broken */
+.node.agent-edit .lbl,
+.node.agent-create .lbl { fill: inherit; }
+```
+
+with explicit fills that match the stroke colour (legible against the dark fill):
+
+```css
+/* NEW */
+.node.agent-edit .lbl  { fill: #f0883e; font-weight: 500; }
+.node.agent-create .lbl { fill: #3fb950; font-weight: 500; }
+.node.agent-read .lbl   { fill: #8ab8e3; }
+```
+
+Acceptance: visual diff test in `tests/e2e/` opens the canvas, dispatches a fake `edit` event, and screenshots the touched pill; the label must register on a contrast check (text colour ≠ fill colour, ≥ 4.5:1 against the `#1a0f00` orange-fill, which `#f0883e` clears at 5.8:1).
+
+### Decision 4 — Drop the v2.0 chrome modules
+
+The redesign supersedes two v2.0 modules:
+
+- `timeline.js` — current ugly strip implementation. The new module is `history-clock.js` (the pill + popover). The old file is deleted, not deprecated; it never made it past v2.0 in production.
+- The 28 px `agent-summary-bar` rendered below the strip — folded into the new popover header (`3 edited · 1 created · 1 deleted` shown as a one-line summary at the top of the history popover).
+
+### Files touched in v2.1
+
+| File | Change |
+|---|---|
+| `src/arboviz/static/timeline.js` | **deleted** |
+| `src/arboviz/static/history-clock.js` | new — pill anchor + popover, hover + `T` hotkey, agentState consumer |
+| `src/arboviz/static/live-status.js` | new — top-center pill, lifecycle tied to agentState |
+| `src/arboviz/static/diff-badge.js` | new — pill-anchored badge rendering |
+| `src/arboviz/static/arboviz.css` | lines 1152–1153 fix; add styles for history pill, popover, live status, diff badge |
+| `src/arboviz/static/index.html` | swap timeline.js import for the three new modules |
+| `src/arboviz/static/arboviz.js` | wire new modules to `agentState.subscribe`; remove timeline.js wiring |
+| `src/arboviz/server.py` | populate `diff` field on `edit`/`create` events; cache per `(path, mtime)` |
+| `src/arboviz/models.py` | `AgentEvent` gains optional `diff: DiffStat | None` |
+| `src/arboviz/lock.py` | unchanged |
+| `src/arboviz/cli.py` | unchanged for v2.1 (token flag is v2.2) |
+| `src/arboviz/skills/arboviz/SKILL.md` | unchanged for v2.1 |
+| `tests/e2e/test_chrome_redesign.py` | new — pill discoverability pulse, popover open on hover + `T`, diff badge appears under touched pill, live status pill enters and exits, contrast check on agent-edit label |
+| `pyproject.toml` | version bump 2.0.0 → 2.1.0 |
+| `CHANGELOG.md` | v2.1.0 entry |
+
+### v2.1 contract (test gate)
+
+A successful v2.1 build satisfies all of:
+
+1. No timeline strip overlaps the browser tab chrome at any viewport width ≥ 800 px.
+2. After at least one task completes, a `history` clock pill is visible bottom-left; hovering it OR pressing `T` opens the popover within 160 ms; mouseout collapses it within 280 ms.
+3. The popover lists every entry from `agentState.timeline`, newest at the bottom, live task with orange dot + pulse.
+4. Clicking a non-live entry calls `agentState.viewPastTask(i)`; clicking the live entry while past-task is active calls `viewLive()`.
+5. Every `agent-edit` and `agent-create` event populates a diff badge under the pill within 200 ms of receipt, or omits it silently if git is unavailable.
+6. The live status pill appears within 80 ms of the first non-snapshot event after `task-end` (or session start) and disappears within 800 ms after the next `task-end`.
+7. `agent-edit` and `agent-create` pill labels are rendered in the stroke colour, not black; e2e contrast check passes.
+8. Backwards: a v2.0 lock file is still recognized by v2.1's `find_lock_for_cwd`. v2.1 reads v2.0 session files on disk without crashing (the `diff` field is optional and absent in old sessions).
+
+### Out of scope for v2.1
+
+- Token / cost overlay (deferred to v2.2 — Sir confirmed defer)
+- Hotspot heat (deferred — only earns its keep on long sessions)
+- Per-task duration as a separate pill (already implied by popover entries)
+- Any change to the skill's CLI contract
+
+---
+
+*v2.1 chrome redesign spec appended by Friday · 2026-05-20 · scope locked; ready for plan generation.*
