@@ -96,7 +96,7 @@ def test_relative_path_canonicalized_to_absolute(client, tmp_path):
     assert edit_events[-1]["file"] == str((tmp_path / "src/auth.py").resolve())
 
 
-def test_buffer_since_filter(client):
+def test_buffer_since_filter(client, tmp_path):
     client.post("/api/event", json={"type": "edit", "file": "a.py", "ts": 10})
     client.post("/api/event", json={"type": "edit", "file": "b.py", "ts": 20})
     client.post("/api/event", json={"type": "edit", "file": "c.py", "ts": 30})
@@ -106,12 +106,55 @@ def test_buffer_since_filter(client):
     # Only ts > 15 should come back.
     assert all(e["ts"] > 15 for e in events if "ts" in e)
     files = [e["file"] for e in events]
-    assert any("b.py" in f for f in files)
-    assert any("c.py" in f for f in files)
-    assert not any("a.py" in f for f in files)
+    # Match the canonicalized absolute paths the server stores — substring
+    # matches would silently pass even if the server stopped resolving.
+    assert str((tmp_path / "b.py").resolve()) in files
+    assert str((tmp_path / "c.py").resolve()) in files
+    assert str((tmp_path / "a.py").resolve()) not in files
 
 
 def test_buffer_no_since_returns_all(client):
     client.post("/api/event", json={"type": "edit", "file": "a.py", "ts": 1})
     r = client.get("/api/buffer")
     assert len(r.json()) >= 1
+
+
+def test_path_traversal_rejected(client):
+    """`..` traversal must be rejected — relative path that resolves outside
+    the project root would poison the session/buffer."""
+    r = client.post(
+        "/api/event",
+        json={"type": "edit", "file": "../../etc/passwd", "ts": 1},
+    )
+    assert r.status_code == 422
+
+
+def test_session_resets_current_task_after_task_end(client, tmp_path):
+    """A read/edit arriving without a preceding snapshot must NOT accumulate
+    into the previous task's footprint."""
+    # First task — snapshot + edit a.py + task-end
+    client.post("/api/event", json={"type": "snapshot", "ts": 1})
+    client.post("/api/event", json={"type": "edit", "file": "a.py", "ts": 2})
+    client.post("/api/event", json={"type": "task-end", "label": "first", "ts": 3})
+    # Second task — NO snapshot, just edit b.py + task-end. Without the
+    # reset, b.py would land alongside a.py in the second task's footprint.
+    client.post("/api/event", json={"type": "edit", "file": "b.py", "ts": 4})
+    client.post("/api/event", json={"type": "task-end", "label": "second", "ts": 5})
+
+    # Reach into the session via /api/buffer is not enough — inspect server
+    # internals via a fresh import.
+    from arboviz.server import build_app  # noqa: F401
+    # The AgentSession state is owned by the app instance — easier to
+    # validate from a unit test on AgentSession itself; do that here too:
+    from arboviz.session import AgentSession
+    s = AgentSession()
+    s.handle("snapshot", None, None)
+    s.handle("edit", "/abs/a.py", None)
+    s.handle("task-end", None, "first")
+    s.handle("edit", "/abs/b.py", None)
+    s.handle("task-end", None, "second")
+    assert s.tasks[0]["footprint"]["edited"] == ["/abs/a.py"]
+    assert s.tasks[1]["footprint"]["edited"] == ["/abs/b.py"], (
+        f"second task should only contain b.py, got "
+        f"{s.tasks[1]['footprint']['edited']}"
+    )

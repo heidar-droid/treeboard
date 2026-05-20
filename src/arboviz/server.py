@@ -381,7 +381,20 @@ def build_app(
                     "file path must be relative to the project root "
                     "(e.g. 'src/auth.py', not '/abs/path/...')",
                 )
-            event.file = str((root_p / raw).resolve())
+            resolved = (root_p / raw).resolve()
+            # Reject paths that escape the project root via `..` traversal.
+            # No file I/O happens here, so this isn't a security boundary —
+            # but the resulting absolute paths would never match any pill's
+            # data-path attribute and would poison the session JSON with
+            # entries that no view can render.
+            try:
+                resolved.relative_to(root_p)
+            except ValueError:
+                raise HTTPException(
+                    422,
+                    f"path escapes project root: {event.file!r}",
+                )
+            event.file = str(resolved)
 
         payload = event.model_dump()
 
@@ -444,7 +457,15 @@ def build_app(
         @app.post("/api/reset")
         async def reset_state():
             _EVENT_BUFFER.clear()
-            _agent_session.__init__()
+            _agent_session.reset()
+            # Rebuild the import graph too — otherwise prior-test state in
+            # the module-scoped e2e fixture leaks across tests and produces
+            # false positives/negatives in graph-dependent assertions.
+            _graph.clear()
+            try:
+                _graph.update(build_graph(root_p))
+            except Exception:
+                pass
             return {"ok": True}
 
     @app.get("/")
