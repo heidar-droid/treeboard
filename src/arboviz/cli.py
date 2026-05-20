@@ -17,7 +17,7 @@ import uvicorn
 
 from arboviz.lock import clear_lock, existing_server, read_lock, write_lock
 from arboviz.server import build_app
-from arboviz.window import open_window
+from arboviz.window import run_with_window
 
 AGENT_COMMANDS = {"read", "edit", "create", "delete", "snapshot", "task-end"}
 
@@ -107,7 +107,7 @@ def main(argv: list[str] | None = None) -> int:
         url = f"http://127.0.0.1:{port}"
         print(f"arboviz already running → {url}")
         if not args.no_browser:
-            threading.Timer(0.1, lambda: open_window(url)).start()
+            threading.Timer(0.1, lambda: webbrowser.open(url)).start()
         return 0
 
     app = build_app(
@@ -122,13 +122,15 @@ def main(argv: list[str] | None = None) -> int:
     write_lock(pid=os.getpid(), port=port, path=str(args.path))
     atexit.register(clear_lock)
 
-    if not args.no_browser:
-        threading.Timer(0.5, lambda: open_window(url)).start()
+    if args.no_browser:
+        # Headless mode — server only, no window
+        config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
+        server = uvicorn.Server(config)
+        try:
+            server.run()
+        except KeyboardInterrupt:
+            pass
+        return 0
 
-    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
-    server = uvicorn.Server(config)
-    try:
-        server.run()
-    except KeyboardInterrupt:
-        pass
-    return 0
+    # With window — run_with_window handles both the native window and uvicorn
+    return run_with_window(app, port, url)

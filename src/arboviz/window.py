@@ -2,43 +2,42 @@
 from __future__ import annotations
 
 import pathlib
-import threading
 import webbrowser
 
+import uvicorn
 
-def open_window(url: str, title: str = "arboviz") -> None:
+
+def run_with_window(app, port: int, url: str) -> int:
     """
-    Open the canvas in a native macOS window via PyWebView if available,
-    otherwise fall back to the default browser.
+    Run the arboviz canvas in a native macOS window via PyWebView if installed,
+    otherwise open the default browser and run uvicorn on the main thread.
 
-    PyWebView's `webview.start()` is blocking and must run on the main thread,
-    so we spawn it in a daemon thread. The caller (uvicorn) continues running
-    the server on the main thread.
+    Returns the exit code.
     """
     try:
         import webview  # pywebview
     except ImportError:
         _warn_native_missing()
         webbrowser.open(url)
-        return
+        return _run_uvicorn_main(app, port)
 
     class Api:
         def bring_to_front(self) -> None:
-            for w in webview.windows:
+            for w in list(webview.windows):
                 try:
                     w.on_top = True
                 except Exception:
                     pass
 
         def send_to_back(self) -> None:
-            for w in webview.windows:
+            for w in list(webview.windows):
                 try:
                     w.on_top = False
                 except Exception:
                     pass
 
     webview.create_window(
-        title,
+        "arboviz",
         url,
         width=900,
         height=640,
@@ -46,11 +45,28 @@ def open_window(url: str, title: str = "arboviz") -> None:
         js_api=Api(),
     )
 
-    threading.Thread(
-        target=webview.start,
-        kwargs={"debug": False},
-        daemon=True,
-    ).start()
+    def _run_server() -> None:
+        # Runs in a pywebview-managed worker thread after the GUI initialises.
+        config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
+        uvicorn.Server(config).run()
+
+    try:
+        # webview.start() blocks the main thread; func runs in a worker.
+        webview.start(func=_run_server, debug=False)
+    except KeyboardInterrupt:
+        pass
+    return 0
+
+
+def _run_uvicorn_main(app, port: int) -> int:
+    """Browser fallback path — uvicorn on the main thread, no native window."""
+    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
+    server = uvicorn.Server(config)
+    try:
+        server.run()
+    except KeyboardInterrupt:
+        pass
+    return 0
 
 
 def _warn_native_missing() -> None:
