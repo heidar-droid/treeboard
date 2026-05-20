@@ -186,6 +186,10 @@ function redraw({ initial = false } = {}) {
 
   wireInteractions(nodes);
   applyAgentPillStates(board, agentState);
+  // Watcher-driven redraw races the create/delete event by ~250ms. Once the
+  // pill DOM exists, flush any pending agent animations from here so the ring
+  // actually fires instead of being silently cleared by the subscriber.
+  flushPendingAgentAnimations();
 
   // Initial fit-to-window — pass SVG pixel coords (always PAD,PAD from viewBox origin)
   if (initial) {
@@ -380,6 +384,37 @@ agentState.handle = function (evt) {
   _origHandle(evt);
 };
 
+// Flush queued create/delete animations against the current DOM. Anything
+// without a matching node stays queued and is retried on the next render —
+// the file-watcher debounce is 250ms, so the pill typically doesn't exist
+// when the agent event first lands.
+function flushPendingAgentAnimations() {
+  if (_justCreated.size) {
+    const stillPending = new Set();
+    for (const path of _justCreated) {
+      const node = board.querySelector(`g.node[data-path="${CSS.escape(path)}"]`);
+      if (node) {
+        animateNewFile(node);
+      } else {
+        stillPending.add(path);
+      }
+    }
+    _justCreated.clear();
+    for (const p of stillPending) _justCreated.add(p);
+  }
+
+  if (_justDeleted.size) {
+    // Deletes must fire on the OLD DOM — if the watcher-driven redraw has
+    // already rebuilt nodes, the deleted pill is gone and there's nothing to
+    // animate. Drop entries that no longer have a node rather than retrying.
+    for (const path of _justDeleted) {
+      const node = board.querySelector(`g.node[data-path="${CSS.escape(path)}"]`);
+      if (node) animateDeleteFile(node);
+    }
+    _justDeleted.clear();
+  }
+}
+
 let _prevCanvasState = "idle";
 agentState.subscribe((s) => {
   applyAgentPillStates(board, s);
@@ -392,17 +427,5 @@ agentState.subscribe((s) => {
   }
   _prevCanvasState = s.canvasState;
 
-  // Trigger new-file rings
-  for (const path of _justCreated) {
-    const node = board.querySelector(`g.node[data-path="${CSS.escape(path)}"]`);
-    if (node) animateNewFile(node);
-  }
-  _justCreated.clear();
-
-  // Trigger delete-file fade
-  for (const path of _justDeleted) {
-    const node = board.querySelector(`g.node[data-path="${CSS.escape(path)}"]`);
-    if (node) animateDeleteFile(node);
-  }
-  _justDeleted.clear();
+  flushPendingAgentAnimations();
 });
