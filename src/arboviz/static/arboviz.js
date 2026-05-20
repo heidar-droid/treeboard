@@ -185,6 +185,7 @@ function redraw({ initial = false } = {}) {
   if (state.mode === "graph") redrawGraph(board);
 
   wireInteractions(nodes);
+  applyAgentPillStates(board, agentState);
 
   // Initial fit-to-window — pass SVG pixel coords (always PAD,PAD from viewBox origin)
   if (initial) {
@@ -379,15 +380,17 @@ agentState.handle = function (evt) {
   _origHandle(evt);
 };
 
+let _prevCanvasState = "idle";
 agentState.subscribe((s) => {
   applyAgentPillStates(board, s);
   scanBeam.update(s.canvasState);
   timeline.update(s);
 
-  // Bring native window to front on task start
-  if (s.canvasState === "scanning") {
+  // Bring native window forward only on transition INTO scanning
+  if (s.canvasState === "scanning" && _prevCanvasState !== "scanning") {
     windowBridge.bringToFront();
   }
+  _prevCanvasState = s.canvasState;
 
   // Trigger new-file rings
   for (const path of _justCreated) {
