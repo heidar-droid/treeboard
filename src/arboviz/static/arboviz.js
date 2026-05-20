@@ -17,6 +17,12 @@ import { setupBookmarks, syncBookmarkHighlights } from "/static/bookmarks.js";
 import { setupMinimap, redrawMinimap } from "/static/minimap.js";
 import { setupProjectTabs } from "/static/project-tabs.js";
 import { initTheme, mountThemeToggle } from "/static/popover/theme.js";
+import { agentState } from "/static/agent-state.js";
+import { applyAgentPillStates, animateNewFile, animateDeleteFile } from "/static/agent-pills.js";
+import { setupScanBeam } from "/static/scan-beam.js";
+import { setupDepRipple, loadGraph } from "/static/dep-ripple.js";
+import { setupTimeline } from "/static/timeline.js";
+import { windowBridge } from "/static/window-bridge.js";
 
 const board = document.getElementById("board");
 const viewport = document.getElementById("viewport");
@@ -355,3 +361,45 @@ window.addEventListener("DOMContentLoaded", () => {
 window.__tb = { camera, nodeIndex, redraw, state, collapsed, viewBoxOffset: { x: 0, y: 0 }, get tree() { return tree; } };
 
 setupPopovers(viewport);
+
+// ── Agent cockpit wiring ──────────────────────────────────────
+const scanBeam = setupScanBeam(viewport);
+const timeline = setupTimeline(viewport);
+const depRipple = setupDepRipple(board, () => agentState.canvasState);
+loadGraph();
+
+// Wrap agentState.handle to track which files just got created/deleted
+// so we can trigger their animations on the next render cycle.
+const _justCreated = new Set();
+const _justDeleted = new Set();
+const _origHandle = agentState.handle.bind(agentState);
+agentState.handle = function (evt) {
+  if (evt.type === "create" && evt.file) _justCreated.add(evt.file);
+  if (evt.type === "delete" && evt.file) _justDeleted.add(evt.file);
+  _origHandle(evt);
+};
+
+agentState.subscribe((s) => {
+  applyAgentPillStates(board, s);
+  scanBeam.update(s.canvasState);
+  timeline.update(s);
+
+  // Bring native window to front on task start
+  if (s.canvasState === "scanning") {
+    windowBridge.bringToFront();
+  }
+
+  // Trigger new-file rings
+  for (const path of _justCreated) {
+    const node = board.querySelector(`g.node[data-path="${CSS.escape(path)}"]`);
+    if (node) animateNewFile(node);
+  }
+  _justCreated.clear();
+
+  // Trigger delete-file fade
+  for (const path of _justDeleted) {
+    const node = board.querySelector(`g.node[data-path="${CSS.escape(path)}"]`);
+    if (node) animateDeleteFile(node);
+  }
+  _justDeleted.clear();
+});
