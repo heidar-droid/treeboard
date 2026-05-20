@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import pathlib
 import threading
@@ -46,14 +47,23 @@ _SESSIONS_DIR = pathlib.Path.home() / ".arboviz" / "sessions"
 _SESSION_LOCK = threading.Lock()
 
 
-def session_file_path() -> pathlib.Path:
-    return _SESSIONS_DIR / f"{date.today()}.json"
+def _project_tag(project: str) -> str:
+    return hashlib.sha1(project.encode()).hexdigest()[:8]
+
+
+def session_file_path(project: str | None = None) -> pathlib.Path:
+    """Per-project session file. The `project` arg is required for new code;
+    the optional default is kept only so legacy callers don't break, but they
+    will silently collide on a shared file."""
+    if project is None:
+        return _SESSIONS_DIR / f"{date.today()}.json"
+    return _SESSIONS_DIR / f"{date.today()}-{_project_tag(project)}.json"
 
 
 def load_session(project: str) -> dict:
     """Load today's session for this project. Returns empty session on any failure."""
     _SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
-    p = session_file_path()
+    p = session_file_path(project)
     if not p.exists():
         return {"project": project, "tasks": []}
     try:
@@ -72,7 +82,7 @@ def append_task_to_session(project: str, task: dict) -> None:
         _SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
         session = load_session(project)
         session["tasks"].append(task)
-        p = session_file_path()
+        p = session_file_path(project)
         tmp = p.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(session, indent=2), encoding="utf-8")
         tmp.replace(p)

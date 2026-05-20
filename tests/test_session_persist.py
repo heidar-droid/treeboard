@@ -43,7 +43,24 @@ def test_load_session_ignores_different_project(tmp_sessions):
 
 def test_load_session_handles_corrupt_file(tmp_sessions):
     tmp_sessions.mkdir(parents=True)
-    from datetime import date
-    (tmp_sessions / f"{date.today()}.json").write_text("CORRUPT")
+    session_file_path("/myapp").write_text("CORRUPT")
     session = load_session("/myapp")
     assert session["tasks"] == []
+
+
+def test_two_projects_same_day_no_collision(tmp_sessions):
+    """Two distinct projects must end up in distinct session files."""
+    task_a = {"label": "a", "started_at": 0, "duration_s": 1,
+              "footprint": {"read": [], "edited": ["a.py"], "created": [], "deleted": []},
+              "snapshot_before": {"files": [], "timestamp": 0}}
+    task_b = {"label": "b", "started_at": 0, "duration_s": 1,
+              "footprint": {"read": [], "edited": ["b.py"], "created": [], "deleted": []},
+              "snapshot_before": {"files": [], "timestamp": 0}}
+    append_task_to_session("/proj_a", task_a)
+    append_task_to_session("/proj_b", task_b)
+    sess_a = load_session("/proj_a")
+    sess_b = load_session("/proj_b")
+    assert [t["label"] for t in sess_a["tasks"]] == ["a"]
+    assert [t["label"] for t in sess_b["tasks"]] == ["b"]
+    # They must actually be in different files on disk.
+    assert session_file_path("/proj_a") != session_file_path("/proj_b")
