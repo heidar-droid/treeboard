@@ -7,7 +7,7 @@
 const BADGE_CLASS = "diff-badge";
 const LAYER_ID = "diff-badge-layer";
 
-export function setupDiffBadges(viewport, board, agentState) {
+export function setupDiffBadges(viewport, board, world, agentState) {
   if (getComputedStyle(viewport).position === "static") {
     viewport.style.position = "relative";
   }
@@ -52,7 +52,6 @@ export function setupDiffBadges(viewport, board, agentState) {
 
   const unsubscribe = agentState.subscribe(schedule);
 
-  const world = document.getElementById("world");
   const worldObs = world
     ? new MutationObserver(schedule)
     : null;

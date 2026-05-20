@@ -54,6 +54,7 @@ export const agentState = {
     } else if (type === "delete" && file) {
       this.canvasState = "editing";
       this.agentOps.set(file, "delete");
+      this.agentDiffs.delete(file);
     } else if (type === "task-end") {
       this.canvasState = "frozen";
       const footprint = this._buildFootprint();

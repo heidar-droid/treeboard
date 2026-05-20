@@ -109,6 +109,15 @@ def arboviz_server_with_tracked_file(tmp_path):
         proc.terminate()
         raise RuntimeError("arboviz server with tracked file failed to start")
 
+    # Reset state for test isolation (the module-level autouse fixture only
+    # resets the shared arboviz_server, not this random-port instance)
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
+        conn.request("POST", "/api/reset")
+        r = conn.getresponse(); r.read(); conn.close()
+    except Exception:
+        pass  # Best-effort; ARBOVIZ_TEST_MODE may not be honored if env doesn't propagate
+
     yield (url, tmp_path)
 
     try:

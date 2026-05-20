@@ -375,7 +375,7 @@ const scanBeam = setupScanBeam(viewport);
 const timeline = setupTimeline(viewport);
 setupHistoryClock(viewport, agentState);
 setupLiveStatus(viewport, agentState);
-setupDiffBadges(viewport, board, agentState);
+setupDiffBadges(viewport, board, world, agentState);
 const depRipple = setupDepRipple(board, () => agentState.canvasState);
 loadGraph();
 
