@@ -8,12 +8,12 @@ from arboviz.server import build_app
 @pytest.fixture
 def tmp_repo(tmp_path):
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
-    subprocess.run(["git", "-C", str(tmp_path), "config", "user.email", "t@t"], check=True)
-    subprocess.run(["git", "-C", str(tmp_path), "config", "user.name", "t"], check=True)
-    subprocess.run(["git", "-C", str(tmp_path), "config", "commit.gpgsign", "false"], check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=tmp_path, check=True)
     (tmp_path / "a.py").write_text("one\ntwo\nthree\n")
-    subprocess.run(["git", "-C", str(tmp_path), "add", "a.py"], check=True)
-    subprocess.run(["git", "-C", str(tmp_path), "commit", "-q", "-m", "init"], check=True)
+    subprocess.run(["git", "add", "a.py"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=tmp_path, check=True)
     return tmp_path
 
 
@@ -232,6 +232,7 @@ def test_agent_event_carries_diff_for_edit(tmp_repo, client):
     edit = next(e for e in buf if e["type"] == "edit")
     assert edit["diff"] is not None
     assert edit["diff"]["added"] >= 1
+    assert edit["diff"]["removed"] >= 1
 
 
 def test_agent_event_read_has_no_diff(tmp_repo, client):

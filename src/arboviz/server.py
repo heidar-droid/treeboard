@@ -34,7 +34,7 @@ def _has_parent_segment(raw: str) -> bool:
     return any(p == ".." for p in norm.split("/"))
 
 
-class DiffStat(BaseModel):
+class EventDiffStat(BaseModel):
     added: int
     removed: int
 
@@ -44,7 +44,7 @@ class AgentEvent(BaseModel):
     file: Optional[str] = None
     label: Optional[str] = None
     ts: int = 0
-    diff: Optional[DiffStat] = None    # populated server-side for edit/create
+    diff: Optional[EventDiffStat] = None    # populated server-side for edit/create
 
     @field_validator("type")
     @classmethod
@@ -453,7 +453,7 @@ def build_app(
                 rel = str(pathlib.Path(event.file).relative_to(root_p))
                 stat = diff_stat(root_p, rel)
                 if stat is not None:
-                    event.diff = DiffStat(added=stat.added, removed=stat.removed)
+                    event.diff = EventDiffStat(added=stat.added, removed=stat.removed)
             except Exception:
                 pass  # diff is best-effort; never fail the request
 
