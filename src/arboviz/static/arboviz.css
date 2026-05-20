@@ -1148,9 +1148,12 @@ pre.code { margin: 0; padding: 14px 16px; font: 400 11.5px/1.65 'JetBrains Mono'
   fill: #140800;
 }
 
-/* Labels on agent-state nodes */
-.node.agent-edit .lbl,
-.node.agent-create .lbl { fill: inherit; }
+/* Labels on agent-state nodes — explicit fills so SVG text inherits the
+   stroke colour instead of falling back to the parent <g>'s default black.
+   This was the v2.0 contrast bug. */
+.node.agent-edit   .lbl { fill: #f0883e; font-weight: 500; }
+.node.agent-create .lbl { fill: #3fb950; font-weight: 500; }
+.node.agent-read   .lbl { fill: #8ab8e3; }
 
 /* Deleted text label */
 .node.agent-delete .lbl {
