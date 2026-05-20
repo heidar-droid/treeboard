@@ -7,10 +7,29 @@ import subprocess
 import time
 from contextlib import asynccontextmanager
 
+from typing import Optional
+
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, field_validator
 from starlette.middleware.base import BaseHTTPMiddleware
+
+_AGENT_EVENT_TYPES = {"read", "edit", "create", "delete", "snapshot", "task-end"}
+
+
+class AgentEvent(BaseModel):
+    type: str
+    file: Optional[str] = None
+    label: Optional[str] = None
+    ts: int = 0
+
+    @field_validator("type")
+    @classmethod
+    def validate_type(cls, v: str) -> str:
+        if v not in _AGENT_EVENT_TYPES:
+            raise ValueError(f"unknown event type: {v!r}")
+        return v
 
 from arboviz.scan import scan_tree
 from arboviz.meta import folder_meta
@@ -20,6 +39,8 @@ from arboviz.git import git_status, git_diff
 from arboviz.search import content_search
 from arboviz.imports import parse_imports
 from arboviz.persist import load_json, save_json, _RW_LOCK
+from arboviz.graph import build_graph, update_graph_for_file, remove_from_graph
+from arboviz.session import AgentSession
 
 
 def build_app(
@@ -308,6 +329,59 @@ def build_app(
         views.pop(name, None)
         save_json(root_p, "views", views)
         return {"ok": True}
+
+    # ── Agent cockpit ────────────────────────────────────────────────────────
+    _EVENT_BUFFER: list[dict] = []
+    _BUFFER_MAX = 50
+    _agent_session = AgentSession()
+
+    try:
+        _graph: dict = build_graph(root_p)
+    except Exception:
+        _graph = {}
+
+    @app.get("/health")
+    async def health():
+        return {"status": "ok"}
+
+    @app.post("/api/event")
+    async def agent_event(event: AgentEvent):
+        payload = event.model_dump()
+
+        if event.type == "create" and event.file:
+            full = str(root_p / event.file)
+            try:
+                update_graph_for_file(_graph, full, root_p)
+            except Exception:
+                pass
+        elif event.type == "delete" and event.file:
+            full = str(root_p / event.file)
+            remove_from_graph(_graph, full)
+
+        _agent_session.handle(event.type, event.file, event.label)
+
+        _EVENT_BUFFER.append(payload)
+        if len(_EVENT_BUFFER) > _BUFFER_MAX:
+            _EVENT_BUFFER.pop(0)
+
+        dead = []
+        for ws in list(getattr(app.state, "ws_clients", set())):
+            try:
+                await ws.send_json({"kind": "agent", **payload})
+            except Exception:
+                dead.append(ws)
+        for d in dead:
+            app.state.ws_clients.discard(d)
+
+        return {"ok": True}
+
+    @app.get("/api/graph")
+    async def get_graph():
+        return _graph
+
+    @app.get("/api/buffer")
+    async def get_buffer():
+        return _EVENT_BUFFER
 
     @app.get("/")
     def index():
