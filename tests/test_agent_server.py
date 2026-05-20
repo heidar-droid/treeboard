@@ -169,23 +169,30 @@ def test_clean_relative_path_accepted(client):
     assert r.status_code == 200
 
 
-def test_session_resets_current_task_after_task_end(client, tmp_path):
-    """A read/edit arriving without a preceding snapshot must NOT accumulate
-    into the previous task's footprint."""
-    # First task — snapshot + edit a.py + task-end
+def test_server_records_two_distinct_task_ends_via_api(client, tmp_path):
+    """Integration check: the server must accept and persist two consecutive
+    task-end events as distinct entries in the event buffer — proving the
+    request path through `/api/event` is wired up. This does NOT verify the
+    AgentSession's per-task footprint isolation — see the dedicated unit test
+    `test_agent_session_resets_current_task_after_task_end` below for that."""
     client.post("/api/event", json={"type": "snapshot", "ts": 1})
     client.post("/api/event", json={"type": "edit", "file": "a.py", "ts": 2})
     client.post("/api/event", json={"type": "task-end", "label": "first", "ts": 3})
-    # Second task — NO snapshot, just edit b.py + task-end. Without the
-    # reset, b.py would land alongside a.py in the second task's footprint.
     client.post("/api/event", json={"type": "edit", "file": "b.py", "ts": 4})
     client.post("/api/event", json={"type": "task-end", "label": "second", "ts": 5})
 
-    # Reach into the session via /api/buffer is not enough — inspect server
-    # internals via a fresh import.
-    from arboviz.server import build_app  # noqa: F401
-    # The AgentSession state is owned by the app instance — easier to
-    # validate from a unit test on AgentSession itself; do that here too:
+    buf = client.get("/api/buffer").json()
+    task_ends = [e for e in buf if e["type"] == "task-end"]
+    assert len(task_ends) == 2
+    labels = [e.get("label") for e in task_ends]
+    assert labels == ["first", "second"]
+
+
+def test_agent_session_resets_current_task_after_task_end():
+    """Unit test for AgentSession.reset() semantics: a read/edit arriving
+    without a preceding snapshot must NOT accumulate into the previous task's
+    footprint. Covers the AgentSession class directly — not the HTTP path
+    (see `test_server_records_two_distinct_task_ends_via_api` for that)."""
     from arboviz.session import AgentSession
     s = AgentSession()
     s.handle("snapshot", None, None)
