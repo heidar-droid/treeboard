@@ -57,6 +57,67 @@ def arboviz_server(tmp_path_factory):
         proc.kill()
 
 
+@pytest.fixture
+def arboviz_server_with_tracked_file(tmp_path):
+    """Start arboviz on a git repo with one tracked file, then dirty it.
+
+    Guarantees `git diff --numstat` returns +N/-M for a.py on the next
+    agent edit event, so the diff badge has something to render.
+    """
+    import http.client
+    import socket
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=tmp_path, check=True)
+    (tmp_path / "a.py").write_text("one\n")
+    subprocess.run(["git", "add", "a.py"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=tmp_path, check=True)
+    # Dirty it so diff has something to report
+    (tmp_path / "a.py").write_text("one\ntwo\nthree\n")
+
+    # Pick a free port to avoid collisions with the module-scoped server
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+
+    env = os.environ.copy()
+    env["ARBOVIZ_TEST_MODE"] = "1"
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "arboviz", str(tmp_path),
+         "--port", str(port), "--no-browser"],
+        cwd=str(pathlib.Path(__file__).parent.parent.parent),
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        env=env,
+    )
+
+    url = f"http://127.0.0.1:{port}"
+    for _ in range(50):
+        try:
+            conn = http.client.HTTPConnection("127.0.0.1", port, timeout=1)
+            conn.request("GET", "/health")
+            r = conn.getresponse()
+            r.read()
+            if r.status == 200:
+                conn.close()
+                break
+            conn.close()
+        except Exception:
+            time.sleep(0.1)
+    else:
+        proc.terminate()
+        raise RuntimeError("arboviz server with tracked file failed to start")
+
+    yield (url, tmp_path)
+
+    try:
+        proc.terminate()
+        proc.wait(timeout=2)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+
+
 @pytest.fixture(autouse=True)
 def reset_server_state(arboviz_server):
     try:
@@ -138,3 +199,30 @@ def test_live_status_hides_after_task_end(page: Page, arboviz_server):
     expect(page.locator("#live-status")).to_be_visible(timeout=400)
     post_event({"type": "task-end", "label": "done", "ts": ts + 2})
     expect(page.locator("#live-status")).to_be_hidden(timeout=1500)
+
+
+def test_diff_badge_appears_under_edited_pill(page: Page, arboviz_server_with_tracked_file):
+    import http.client
+
+    url, _project = arboviz_server_with_tracked_file
+    port = int(url.rsplit(":", 1)[1])
+
+    def post_evt(payload):
+        body = json.dumps(payload).encode()
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
+        conn.request("POST", "/api/event", body=body,
+                     headers={"Content-Type": "application/json"})
+        r = conn.getresponse()
+        r.read()
+        conn.close()
+
+    page.goto(url)
+    page.wait_for_selector("g.node", timeout=8000)
+
+    ts = int(time.time())
+    post_evt({"type": "snapshot", "ts": ts})
+    post_evt({"type": "edit", "file": "a.py", "ts": ts + 1})
+
+    badge = page.locator(".diff-badge[data-path*='a.py']")
+    expect(badge).to_be_visible(timeout=3000)
+    expect(badge.locator(".plus")).to_be_visible()

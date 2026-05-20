@@ -24,6 +24,7 @@ import { setupDepRipple, loadGraph } from "/static/dep-ripple.js";
 import { setupTimeline } from "/static/timeline.js";
 import { setupHistoryClock } from "/static/history-clock.js";
 import { setupLiveStatus } from "/static/live-status.js";
+import { setupDiffBadges } from "/static/diff-badge.js";
 import { windowBridge } from "/static/window-bridge.js";
 
 const board = document.getElementById("board");
@@ -374,6 +375,7 @@ const scanBeam = setupScanBeam(viewport);
 const timeline = setupTimeline(viewport);
 setupHistoryClock(viewport, agentState);
 setupLiveStatus(viewport, agentState);
+setupDiffBadges(viewport, board, agentState);
 const depRipple = setupDepRipple(board, () => agentState.canvasState);
 loadGraph();
 

@@ -8,6 +8,7 @@ const _subs = new Set();
 export const agentState = {
   canvasState: "idle",
   agentOps: new Map(),       // path → latest op
+  agentDiffs: new Map(),     // path → { added: int, removed: int }
   timeline: [],              // [{label, ts, footprint}]
   activeFootprint: null,     // footprint being reviewed (null = live)
   summaryBar: null,          // {edited, created, deleted, label, duration_s}
@@ -37,6 +38,7 @@ export const agentState = {
     if (type === "snapshot") {
       this.canvasState = "scanning";
       this.agentOps = new Map();
+      this.agentDiffs = new Map();
       this.summaryBar = null;
       this.activeFootprint = null;
     } else if (type === "read" && file) {
@@ -66,6 +68,9 @@ export const agentState = {
       // If the user was inspecting a past task when a new one completes,
       // auto-return them to the live view so they actually see the new state.
       this.activeFootprint = null;
+    }
+    if ((type === "edit" || type === "create") && file && event.diff) {
+      this.agentDiffs.set(file, { added: event.diff.added, removed: event.diff.removed });
     }
     this._notify();
   },
