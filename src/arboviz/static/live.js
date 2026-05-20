@@ -4,6 +4,7 @@ import { agentState } from "/static/agent-state.js";
 export function setupLiveUpdates(onChange) {
   let ws;
   let backoff = 1000;
+  let pingTimer = null;
 
   function connect() {
     ws = new WebSocket(`ws://${location.host}/ws`);
@@ -32,11 +33,14 @@ export function setupLiveUpdates(onChange) {
     });
 
     ws.addEventListener("close", () => {
+      clearInterval(pingTimer);
+      pingTimer = null;
       setTimeout(connect, backoff);
       backoff = Math.min(backoff * 2, 10000);
     });
 
-    setInterval(() => { try { ws.send("ping"); } catch {} }, 15000);
+    clearInterval(pingTimer);
+    pingTimer = setInterval(() => { try { ws.send("ping"); } catch {} }, 15000);
   }
 
   connect();
