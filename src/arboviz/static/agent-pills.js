@@ -26,9 +26,11 @@ export function applyAgentPillStates(board, agentState) {
 
   const isFrozen = canvasState === "frozen" || activeFootprint !== null;
 
+  const livePaths = new Set();
   for (const node of board.querySelectorAll("g.node")) {
     const path = node.dataset.path;
     if (!path) continue;
+    livePaths.add(path);
     const pill = node.querySelector("rect.pill");
     if (!pill) continue;
 
@@ -45,6 +47,39 @@ export function applyAgentPillStates(board, agentState) {
       node.classList.add("agent-dim");
     }
   }
+
+  // When reviewing a past task, files that were deleted no longer have a
+  // pill in the scan tree — the deletion is otherwise invisible. Surface
+  // a small label so the user knows the past task touched files that are
+  // no longer on disk.
+  _renderDeletedGhostLabel(board, activeFootprint, livePaths);
+}
+
+function _renderDeletedGhostLabel(board, activeFootprint, livePaths) {
+  const existing = document.getElementById("agent-deleted-ghost-label");
+  if (!activeFootprint) {
+    if (existing) existing.remove();
+    return;
+  }
+  const missing = (activeFootprint.deleted || []).filter(p => !livePaths.has(p));
+  if (missing.length === 0) {
+    if (existing) existing.remove();
+    return;
+  }
+  let label = existing;
+  if (!label) {
+    label = document.createElement("div");
+    label.id = "agent-deleted-ghost-label";
+    label.style.cssText = `
+      position: fixed; bottom: 12px; left: 14px; z-index: 100;
+      background: #3d0000; border: 1px solid #cf353599;
+      border-radius: 6px; padding: 4px 10px;
+      font-size: 11px; font-family: monospace; color: #ff8b8b;
+      pointer-events: none;
+    `;
+    document.body.appendChild(label);
+  }
+  label.textContent = `${missing.length} deleted file${missing.length !== 1 ? "s" : ""} (not shown)`;
 }
 
 /**

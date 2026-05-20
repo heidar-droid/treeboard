@@ -45,11 +45,12 @@ def install_skill() -> None:
         # Read its SKILL.md frontmatter to verify it's actually ours before
         # rmtree'ing anything.
         existing_skill_md = SKILL_LINK / "SKILL.md"
-        is_arboviz = False
+        has_name = False
+        has_vendor = False
         if existing_skill_md.is_file():
             try:
                 text = existing_skill_md.read_text(encoding="utf-8")
-                # Tiny inline frontmatter parse — avoid pulling in PyYAML for one field.
+                # Tiny inline frontmatter parse — avoid pulling in PyYAML for two fields.
                 if text.startswith("---"):
                     end = text.find("---", 3)
                     if end != -1:
@@ -57,10 +58,13 @@ def install_skill() -> None:
                             line = line.strip()
                             if line.startswith("name:"):
                                 if line.split(":", 1)[1].strip().strip("'\"") == "arboviz":
-                                    is_arboviz = True
-                                break
+                                    has_name = True
+                            elif line.startswith("vendor:"):
+                                if line.split(":", 1)[1].strip().strip("'\"") == "io.arboviz":
+                                    has_vendor = True
             except OSError:
                 pass
+        is_arboviz = has_name and has_vendor
 
         if not is_arboviz:
             print(
@@ -84,6 +88,27 @@ def install_skill() -> None:
 
     SKILL_LINK.symlink_to(SKILLS_SRC, target_is_directory=True)
     print(f"arboviz: Claude Code skill installed → {SKILL_LINK}")
+
+
+def refresh_skill_if_stale() -> None:
+    """Repair the symlink if it points to a path that no longer exists.
+
+    After `pip install -U arboviz` the site-packages directory may move and
+    the previously-installed symlink becomes dangling. Silent best-effort —
+    never raise; never log; arboviz must not break Claude Code's startup.
+    """
+    try:
+        if not SKILL_LINK.is_symlink():
+            return
+        target = SKILL_LINK.resolve(strict=False)
+        if target.exists():
+            return
+        SKILL_LINK.unlink()
+        if SKILLS_SRC.exists():
+            CLAUDE_SKILLS.mkdir(parents=True, exist_ok=True)
+            SKILL_LINK.symlink_to(SKILLS_SRC, target_is_directory=True)
+    except Exception:
+        pass
 
 
 def uninstall_skill() -> None:
