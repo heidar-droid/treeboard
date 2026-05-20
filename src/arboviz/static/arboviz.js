@@ -21,7 +21,6 @@ import { agentState } from "/static/agent-state.js";
 import { applyAgentPillStates, animateNewFile, animateDeleteFile } from "/static/agent-pills.js";
 import { setupScanBeam } from "/static/scan-beam.js";
 import { setupDepRipple, loadGraph } from "/static/dep-ripple.js";
-import { setupTimeline } from "/static/timeline.js";
 import { setupHistoryClock } from "/static/history-clock.js";
 import { setupLiveStatus } from "/static/live-status.js";
 import { setupDiffBadges } from "/static/diff-badge.js";
@@ -372,7 +371,6 @@ setupPopovers(viewport);
 
 // ── Agent cockpit wiring ──────────────────────────────────────
 const scanBeam = setupScanBeam(viewport);
-const timeline = setupTimeline(viewport);
 setupHistoryClock(viewport, agentState);
 setupLiveStatus(viewport, agentState);
 setupDiffBadges(viewport, board, world, agentState);
@@ -425,7 +423,6 @@ let _prevCanvasState = "idle";
 agentState.subscribe((s) => {
   applyAgentPillStates(board, s);
   scanBeam.update(s.canvasState);
-  timeline.update(s);
 
   // Bring native window forward only on transition INTO scanning
   if (s.canvasState === "scanning" && _prevCanvasState !== "scanning") {

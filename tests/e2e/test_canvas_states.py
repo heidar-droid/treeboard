@@ -132,7 +132,7 @@ def test_edit_event_applies_orange_pill(page: Page, arboviz_server):
     assert "agent-edit" in classes, f"agent-edit not in classes: {classes}"
 
 
-def test_task_end_shows_timeline_strip(page: Page, arboviz_server):
+def test_task_end_shows_history_clock(page: Page, arboviz_server):
     url, project = arboviz_server
     page.goto(url)
     _wait_for_board(page)
@@ -141,11 +141,15 @@ def test_task_end_shows_timeline_strip(page: Page, arboviz_server):
     post_event({"type": "edit", "file": "auth.py", "ts": ts + 1})
     post_event({"type": "task-end", "label": "auth update", "ts": ts + 2})
     page.wait_for_timeout(600)
-    timeline = page.query_selector("#agent-timeline")
-    assert timeline is not None
-    style = timeline.get_attribute("style") or ""
-    assert "display: flex" in style or "display:flex" in style
-    assert "auth update" in (timeline.inner_text() or "")
+    clock = page.query_selector("#history-clock")
+    assert clock is not None
+    style = clock.get_attribute("style") or ""
+    assert "display: none" not in style.replace(" ", "")
+    page.locator("#history-clock").hover()
+    page.wait_for_timeout(400)
+    popover = page.query_selector("#history-popover")
+    assert popover is not None
+    assert "auth update" in (popover.inner_text() or "")
 
 
 def test_frozen_state_dims_untouched_pills(page: Page, arboviz_server):
