@@ -72,7 +72,12 @@ function drawRipple(svg, board, sourcePath) {
 
   const rippleGroup = document.createElementNS(SVG_NS, "g");
   rippleGroup.id = "agent-ripple-layer";
-  svg.appendChild(rippleGroup);
+  const nodesGroup = svg.querySelector("#nodes");
+  if (nodesGroup) {
+    svg.insertBefore(rippleGroup, nodesGroup);
+  } else {
+    svg.appendChild(rippleGroup);
+  }
 
   let connected = 0;
   for (const neighbourPath of neighbours) {
