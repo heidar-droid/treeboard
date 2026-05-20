@@ -30,7 +30,7 @@ export function setupDepRipple(board, getCanvasState) {
   board.addEventListener("click", e => {
     const node = e.target.closest("g.node");
     if (!node) {
-      clearRipple(svg);
+      clearRipple();
       return;
     }
 
@@ -41,11 +41,11 @@ export function setupDepRipple(board, getCanvasState) {
     if (!path) return;
 
     if (_active === path) {
-      clearRipple(svg);
+      clearRipple();
       return;
     }
+    clearRipple();
     _active = path;
-    clearRipple(svg);
     drawRipple(svg, board, path);
   });
 }
@@ -111,7 +111,7 @@ function drawRipple(svg, board, sourcePath) {
   }
 }
 
-function clearRipple(svg) {
+function clearRipple() {
   _active = null;
   document.getElementById("agent-ripple-layer")?.remove();
   document.getElementById("agent-blast-badge")?.remove();

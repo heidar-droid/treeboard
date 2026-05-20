@@ -7,6 +7,11 @@ class AgentSession:
     """In-memory state for the current agent task."""
 
     def __init__(self):
+        self.reset()
+
+    def reset(self) -> None:
+        """Reset all in-memory state. Used by /api/reset in test mode and
+        called from __init__ to keep both paths in sync."""
         self.state: str = "idle"  # idle | scanning | editing | frozen
         self.current_task: dict = self._empty_task()
         self.tasks: list[dict] = []
@@ -55,3 +60,7 @@ class AgentSession:
                 int(time.time()) - self.current_task["started_at"]
             )
             self.tasks.append(dict(self.current_task))
+            # Reset so a stray event without a preceding snapshot (Claude
+            # restart, manual `arboviz edit`, etc.) does NOT accumulate into
+            # the previous task's footprint.
+            self.current_task = self._empty_task()
